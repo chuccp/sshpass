@@ -33,3 +33,4 @@ go.work.sum
 /.claude
 /.idea
 *.config
+*.log
