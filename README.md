@@ -1,144 +1,138 @@
 # sshpass
 
-Windows 版 sshpass 工具，让你在 Windows 上体验类似 Linux sshpass 的功能。
+Windows 版 sshpass 工具，实现类似 Linux sshpass 的功能。
 
-## 功能
+## 快速开始
 
-- SSH 密码认证登录
-- SSH 私钥认证登录
-- 执行远程命令
-- 文件/目录上传下载（带进度条）
-- 交互式 Shell
-- 支持原版 sshpass 命令格式
-- 支持 scp 风格文件传输
-- 支持 rsync 风格文件同步
+```bash
+# 密码登录执行命令
+sshpass -p 'password' ssh user@example.com 'whoami'
+
+# 私钥登录执行命令
+sshpass -i ~/.ssh/id_ed25519 ssh user@example.com 'hostname'
+
+# 上传文件
+sshpass -h example.com -p 'password' -local file.txt -remote /tmp/file.txt
+
+# 下载文件
+sshpass -h example.com -p 'password' -d -remote /tmp/file.txt -local ./file.txt
+```
+
+## 命令格式
+
+### SSH 登录
+
+```bash
+# 密码认证
+sshpass -p <密码> ssh [user@host] [命令]
+sshpass -p <密码> ssh -p <端口> user@host '命令'
+sshpass -p <密码> ssh -o StrictHostKeyChecking=no user@host
+
+# 私钥认证
+sshpass -i <私钥路径> ssh [user@host] [命令]
+
+# 环境变量密码
+SSHPASS=<密码> sshpass -e ssh user@host
+
+# 密码文件
+echo 'password' > pass.txt
+sshpass -f pass.txt ssh user@host
+
+# 配置文件（多行格式）
+sshpass -f server.config
+```
+
+### 文件传输
+
+```bash
+# 上传文件
+sshpass -h <主机> -p <密码> -local <本地路径> -remote <远程路径>
+
+# 上传目录（自动递归）
+sshpass -h <主机> -p <密码> -local <本地目录> -remote <远程目录>
+
+# 下载文件/目录
+sshpass -h <主机> -p <密码> -d -remote <远程路径> -local <本地路径>
+```
+
+### SCP 风格
+
+```bash
+sshpass -p <密码> scp <本地文件> user@host:<远程路径>
+sshpass -p <密码> scp user@host:<远程文件> <本地路径>
+```
+
+### Rsync 风格
+
+```bash
+sshpass -p <密码> rsync -avz <本地路径> user@host:<远程路径>
+```
+
+## 参数说明
+
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `-p` | 密码 | `-p 'secret123'` |
+| `-i` | 私钥路径 | `-i ~/.ssh/id_ed25519` |
+| `-f` | 密码文件/配置文件 | `-f pass.txt` |
+| `-e` | 从环境变量 SSHPASS 读密码 | `SSHPASS='pass' sshpass -e ssh ...` |
+| `-h` | 主机地址 | `-h example.com` |
+| `-u` | 用户名，默认 root | `-u ubuntu` |
+| `-P` | 端口，默认 22 | `-P 2222` |
+| `-c` | 执行的命令 | `-c 'ls -la'` |
+| `-local` | 本地路径（上传/下载） | `-local ./file.txt` |
+| `-remote` | 远程路径（上传/下载） | `-remote /tmp/file.txt` |
+| `-d` | 下载模式 | `-d` |
+| `-v` | 显示版本 | `-v` |
+
+## 配置文件格式
+
+```
+IP Address:example.com
+Username:root
+Root Password: your_password
+SSH Port 22
+```
+
+## 完整示例
+
+```bash
+# 1. 密码登录执行命令
+sshpass -p 'mypass' ssh root@192.168.1.100 'docker ps'
+
+# 2. 私钥登录执行 sudo 命令
+sshpass -i ~/.ssh/id_ed25519 ssh ubuntu@server.com 'sudo systemctl restart nginx'
+
+# 3. 上传整个目录到服务器
+sshpass -h server.com -p 'mypass' -local ./dist -remote /var/www/html
+
+# 4. 下载服务器日志目录
+sshpass -h server.com -p 'mypass' -d -remote /var/log/nginx -local ./logs
+
+# 5. SCP 上传文件
+sshpass -p 'mypass' scp ./app.jar user@server.com:/opt/app/
+
+# 6. 环境变量传递密码（更安全）
+export SSHPASS='mypass'
+sshpass -e ssh user@server.com 'whoami'
+```
+
+## Git Bash 注意事项
+
+远程路径用 `//` 开头避免路径转换：
+```bash
+# 错误：/tmp 会被转换为 Windows 路径
+sshpass ... -remote /tmp/file.txt
+
+# 正确：使用双斜杠
+sshpass ... -remote //tmp/file.txt
+```
 
 ## 安装
 
 ```bash
 go build -o sshpass.exe .
 ```
-
-## 使用方法
-
-### 1. 密码传递方式
-
-```bash
-# 直接指定密码
-sshpass -p 'password' ssh user@example.com 'whoami'
-
-# 从文件读取密码（单行密码文件）
-echo 'password' > pass.txt
-sshpass -f pass.txt ssh user@example.com
-
-# 从环境变量读取密码
-export SSHPASS='password'
-sshpass -e ssh user@example.com
-```
-
-### 2. 私钥登录
-
-```bash
-sshpass -i ~/.ssh/id_ed25519 ssh user@example.com 'whoami'
-sshpass -i ~/.ssh/id_ed25519 ssh -o StrictHostKeyChecking=no ubuntu@example.com 'sudo journalctl -u caddy -n 30'
-```
-
-### 3. 文件/目录传输
-
-```bash
-# 上传文件
-sshpass -h example.com -p 'password' -local file.txt -remote /tmp/file.txt
-
-# 上传目录
-sshpass -h example.com -p 'password' -local mydir -remote /tmp/mydir
-
-# 下载文件
-sshpass -h example.com -p 'password' -d -remote /tmp/file.txt -local ./file.txt
-
-# 下载目录
-sshpass -h example.com -p 'password' -d -remote /tmp/mydir -local ./mydir
-```
-
-### 4. SCP 风格传输
-
-```bash
-# 上传文件
-sshpass -p 'password' scp local.txt user@example.com:/remote/path/
-
-# 下载文件
-sshpass -p 'password' scp user@example.com:/remote/file.txt ./local/
-```
-
-### 5. Rsync 风格同步
-
-```bash
-sshpass -p 'password' rsync -avz ./local/ user@example.com:/remote/backup/
-```
-
-### 6. 配置文件模式
-
-创建配置文件（如 `server.config`）：
-
-```
-IP Address:your.server.com
-Username:root
-Root Password: your_password
-SSH Port 22
-```
-
-```bash
-sshpass -f server.config              # 登录
-sshpass -f server.config -c 'ls -la'  # 执行命令
-```
-
-## 选项
-
-| 选项 | 说明 |
-|------|------|
-| `-p <密码>` | 直接指定密码 |
-| `-f <文件>` | 从文件读取密码（单行）或配置文件 |
-| `-i <私钥>` | 使用私钥认证 |
-| `-e` | 从环境变量 `SSHPASS` 读取密码 |
-| `-v` | 显示版本 |
-| `-h <主机>` | 指定主机地址 |
-| `-u <用户>` | 指定用户名（默认 root） |
-| `-P <端口>` | 指定端口（默认 22） |
-| `-c <命令>` | 要执行的命令 |
-| `-local <路径>` | 本地文件/目录路径 |
-| `-remote <路径>` | 远程文件/目录路径 |
-| `-d` | 下载模式 |
-
-## 示例
-
-```bash
-# 密码登录
-sshpass -p 'password' ssh root@example.com 'whoami'
-
-# 私钥登录
-sshpass -i ~/.ssh/id_ed25519 ssh ubuntu@example.com 'hostname'
-
-# 环境变量密码
-export SSHPASS='password'
-sshpass -e ssh user@example.com
-
-# 密码文件
-echo 'password' > ~/.ssh/pass
-sshpass -f ~/.ssh/pass ssh user@example.com
-
-# 上传目录（带进度条）
-sshpass -h example.com -p 'password' -local ./project -remote /var/www/
-
-# 下载目录
-sshpass -h example.com -p 'password' -d -remote /var/log/app -local ./logs
-```
-
-## 注意事项
-
-- 在 Git Bash 中使用时，远程路径要用 `//` 开头（如 `//tmp/file.txt`）避免路径被自动转换
-- 配置文件中密码字段支持 `Password:` 或 `Root Password:` 格式
-- 私钥和密码可同时指定，私钥认证优先
-- 文件传输支持目录递归上传/下载
-- 传输过程显示进度条
 
 ## 依赖
 
