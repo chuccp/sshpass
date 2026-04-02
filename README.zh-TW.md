@@ -6,9 +6,9 @@ Windows 版 win-sshpass 工具，實現類似 Linux sshpass 的功能。
 
 ## 下載
 
-從 [GitHub Releases](https://github.com/tomcataoo/win-sshpass/releases) 下載最新版本：
+從 [GitHub Releases](https://github.com/chuccp/win-sshpass/releases) 下載最新版本：
 
-1. 開啟 [Releases](https://github.com/tomcataoo/win-sshpass/releases) 頁面
+1. 開啟 [Releases](https://github.com/chuccp/win-sshpass/releases) 頁面
 2. 下載最新版本的 `win-sshpass-*.zip`
 3. 解壓 `win-sshpass.exe` 到你想要的位置
 
