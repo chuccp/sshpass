@@ -26,10 +26,15 @@ jobs:
       - name: Build
         run: go build -ldflags="-s -w" -o win-sshpass.exe .
 
+      - name: Create zip package
+        run: |
+          $tag = "${{ github.ref_name }}"
+          Compress-Archive -Path win-sshpass.exe,README.md,README.zh-CN.md,README.zh-TW.md,README.ja.md -DestinationPath "win-sshpass-$tag.zip"
+
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
-          files: win-sshpass.exe
+          files: win-sshpass-*.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
