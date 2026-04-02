@@ -24,12 +24,12 @@ jobs:
         run: go mod download
 
       - name: Build
-        run: go build -ldflags="-s -w" -o sshpass.exe .
+        run: go build -ldflags="-s -w" -o win-sshpass.exe .
 
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
-          files: sshpass.exe
+          files: win-sshpass.exe
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

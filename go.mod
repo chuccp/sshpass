@@ -1,4 +1,4 @@
-module github.com/chuccp/sshpass
+module github.com/chuccp/win-sshpass
 
 go 1.26.0
 

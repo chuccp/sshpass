@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build
 
 ```bash
-go build -o sshpass.exe .
+go build -o win-sshpass.exe .
 ```
 
 ## Architecture

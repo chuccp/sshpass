@@ -1,23 +1,23 @@
-# sshpass
+# win-win-sshpass
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md)
 
-Windows 版 sshpass 工具，實現類似 Linux sshpass 的功能。
+Windows 版 win-sshpass 工具，實現類似 Linux sshpass 的功能。
 
 ## 快速開始
 
 ```bash
 # 密碼登入執行命令
-sshpass -p 'password' ssh user@example.com 'whoami'
+win-sshpass -p 'password' ssh user@example.com 'whoami'
 
 # 私鑰登入執行命令
-sshpass -i ~/.ssh/id_ed25519 ssh user@example.com 'hostname'
+win-sshpass -i ~/.ssh/id_ed25519 ssh user@example.com 'hostname'
 
 # 上傳檔案
-sshpass -h example.com -p 'password' -local file.txt -remote /tmp/file.txt
+win-sshpass -h example.com -p 'password' -local file.txt -remote /tmp/file.txt
 
 # 下載檔案
-sshpass -h example.com -p 'password' -d -remote /tmp/file.txt -local ./file.txt
+win-sshpass -h example.com -p 'password' -d -remote /tmp/file.txt -local ./file.txt
 ```
 
 ## 命令格式
@@ -26,48 +26,48 @@ sshpass -h example.com -p 'password' -d -remote /tmp/file.txt -local ./file.txt
 
 ```bash
 # 密碼認證
-sshpass -p <密碼> ssh [user@host] [命令]
-sshpass -p <密碼> ssh -p <端口> user@host '命令'
-sshpass -p <密碼> ssh -o StrictHostKeyChecking=no user@host
+win-sshpass -p <密碼> ssh [user@host] [命令]
+win-sshpass -p <密碼> ssh -p <端口> user@host '命令'
+win-sshpass -p <密碼> ssh -o StrictHostKeyChecking=no user@host
 
 # 私鑰認證
-sshpass -i <私鑰路徑> ssh [user@host] [命令]
+win-sshpass -i <私鑰路徑> ssh [user@host] [命令]
 
 # 環境變數密碼
-SSHPASS=<密碼> sshpass -e ssh user@host
+SSHPASS=<密碼> win-sshpass -e ssh user@host
 
 # 密碼檔案
 echo 'password' > pass.txt
-sshpass -f pass.txt ssh user@host
+win-sshpass -f pass.txt ssh user@host
 
 # 設定檔（多行格式）
-sshpass -f server.config
+win-sshpass -f server.config
 ```
 
 ### 檔案傳輸
 
 ```bash
 # 上傳檔案
-sshpass -h <主機> -p <密碼> -local <本地路徑> -remote <遠端路徑>
+win-sshpass -h <主機> -p <密碼> -local <本地路徑> -remote <遠端路徑>
 
 # 上傳目錄（自動遞迴）
-sshpass -h <主機> -p <密碼> -local <本地目錄> -remote <遠端目錄>
+win-sshpass -h <主機> -p <密碼> -local <本地目錄> -remote <遠端目錄>
 
 # 下載檔案/目錄
-sshpass -h <主機> -p <密碼> -d -remote <遠端路徑> -local <本地路徑>
+win-sshpass -h <主機> -p <密碼> -d -remote <遠端路徑> -local <本地路徑>
 ```
 
 ### SCP 風格
 
 ```bash
-sshpass -p <密碼> scp <本地檔案> user@host:<遠端路徑>
-sshpass -p <密碼> scp user@host:<遠端檔案> <本地路徑>
+win-sshpass -p <密碼> scp <本地檔案> user@host:<遠端路徑>
+win-sshpass -p <密碼> scp user@host:<遠端檔案> <本地路徑>
 ```
 
 ### Rsync 風格
 
 ```bash
-sshpass -p <密碼> rsync -avz <本地路徑> user@host:<遠端路徑>
+win-sshpass -p <密碼> rsync -avz <本地路徑> user@host:<遠端路徑>
 ```
 
 ## 參數說明
@@ -77,7 +77,7 @@ sshpass -p <密碼> rsync -avz <本地路徑> user@host:<遠端路徑>
 | `-p` | 密碼 | `-p 'secret123'` |
 | `-i` | 私鑰路徑 | `-i ~/.ssh/id_ed25519` |
 | `-f` | 密碼檔案/設定檔 | `-f pass.txt` |
-| `-e` | 從環境變數 SSHPASS 讀密碼 | `SSHPASS='pass' sshpass -e ssh ...` |
+| `-e` | 從環境變數 SSHPASS 讀密碼 | `SSHPASS='pass' win-sshpass -e ssh ...` |
 | `-h` | 主機位址 | `-h example.com` |
 | `-u` | 使用者名稱，預設 root | `-u ubuntu` |
 | `-P` | 端口，預設 22 | `-P 2222` |
@@ -99,30 +99,30 @@ port: 22
 
 使用方式：
 ```bash
-sshpass -f server.config -c 'ls -la'
+win-sshpass -f server.config -c 'ls -la'
 ```
 
 ## 完整範例
 
 ```bash
 # 1. 密碼登入執行命令
-sshpass -p 'mypass' ssh root@192.168.1.100 'docker ps'
+win-sshpass -p 'mypass' ssh root@192.168.1.100 'docker ps'
 
 # 2. 私鑰登入執行 sudo 命令
-sshpass -i ~/.ssh/id_ed25519 ssh ubuntu@server.com 'sudo systemctl restart nginx'
+win-sshpass -i ~/.ssh/id_ed25519 ssh ubuntu@server.com 'sudo systemctl restart nginx'
 
 # 3. 上傳整個目錄到伺服器
-sshpass -h server.com -p 'mypass' -local ./dist -remote /var/www/html
+win-sshpass -h server.com -p 'mypass' -local ./dist -remote /var/www/html
 
 # 4. 下載伺服器日誌目錄
-sshpass -h server.com -p 'mypass' -d -remote /var/log/nginx -local ./logs
+win-sshpass -h server.com -p 'mypass' -d -remote /var/log/nginx -local ./logs
 
 # 5. SCP 上傳檔案
-sshpass -p 'mypass' scp ./app.jar user@server.com:/opt/app/
+win-sshpass -p 'mypass' scp ./app.jar user@server.com:/opt/app/
 
 # 6. 環境變數傳遞密碼（更安全）
 export SSHPASS='mypass'
-sshpass -e ssh user@server.com 'whoami'
+win-sshpass -e ssh user@server.com 'whoami'
 ```
 
 ## Git Bash 注意事項
@@ -130,16 +130,16 @@ sshpass -e ssh user@server.com 'whoami'
 遠端路徑用 `//` 開頭避免路徑轉換：
 ```bash
 # 錯誤：/tmp 會被轉換為 Windows 路徑
-sshpass ... -remote /tmp/file.txt
+win-sshpass ... -remote /tmp/file.txt
 
 # 正確：使用雙斜線
-sshpass ... -remote //tmp/file.txt
+win-sshpass ... -remote //tmp/file.txt
 ```
 
 ## 編譯
 
 ```bash
-go build -o sshpass.exe .
+go build -o win-sshpass.exe .
 ```
 
 ## 相依套件
