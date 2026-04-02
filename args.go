@@ -207,5 +207,5 @@ func printUsage() {
 
 // printVersion 打印版本信息
 func printVersion() {
-	fmt.Println("sshpass version v0.2.5 (Windows)")
+	fmt.Printf("sshpass version v%s (Windows)\n", version)
 }
