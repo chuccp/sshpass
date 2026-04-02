@@ -24,6 +24,7 @@ func main() {
 	remotePath := flag.String("remote", "", "远程文件路径(用于上传/下载)")
 	download := flag.Bool("d", false, "下载模式（从远程下载到本地）")
 	useEnv := flag.Bool("e", false, "从环境变量 SSHPASS 读取密码")
+	strictHostKey := flag.Bool("k", false, "启用严格主机密钥验证")
 	showVersion := flag.Bool("v", false, "显示版本")
 	flag.Parse()
 
@@ -52,6 +53,9 @@ func main() {
 				fmt.Fprintf(os.Stderr, "错误: %v\n", err)
 				os.Exit(1)
 			}
+		} else {
+			// 配置文件解析成功，设置命令行指定的 StrictHostKey
+			config.StrictHostKey = *strictHostKey
 		}
 	}
 	if pass == "" && *useEnv {
@@ -80,6 +84,7 @@ func main() {
 		if *port != "" && *port != "22" {
 			config.Port = *port
 		}
+		config.StrictHostKey = *strictHostKey
 		err = runSCP(config, scpArgs)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "SCP执行失败: %v\n", err)
@@ -104,6 +109,7 @@ func main() {
 		if *port != "" && *port != "22" {
 			config.Port = *port
 		}
+		config.StrictHostKey = *strictHostKey
 		err = runRsync(config, rsyncArgs)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Rsync执行失败: %v\n", err)
@@ -132,14 +138,16 @@ func main() {
 			if *port != "" && *port != "22" {
 				config.Port = *port
 			}
+			config.StrictHostKey = *strictHostKey
 		} else if *host != "" && (pass != "" || *keyPath != "") {
 			// 从命令行参数读取（包括文件传输模式）
 			config = &Config{
-				Host:     *host,
-				User:     *user,
-				Password: pass,
-				Port:     *port,
-				KeyPath:  *keyPath,
+				Host:          *host,
+				User:          *user,
+				Password:      pass,
+				Port:          *port,
+				KeyPath:       *keyPath,
+				StrictHostKey: *strictHostKey,
 			}
 		} else {
 			printUsage()

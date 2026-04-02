@@ -9,11 +9,12 @@ import (
 
 // Config 表示SSH连接配置
 type Config struct {
-	Host     string
-	User     string
-	Password string
-	Port     string
-	KeyPath  string // 私钥文件路径
+	Host          string
+	User          string
+	Password      string
+	Port          string
+	KeyPath       string // 私钥文件路径
+	StrictHostKey bool   // 是否验证主机密钥
 }
 
 // parseConfigFile 解析配置文件 (格式: key: value)

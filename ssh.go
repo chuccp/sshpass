@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
 // SSHClient 创建SSH客户端连接
@@ -35,10 +37,25 @@ func SSHClient(config *Config) (*ssh.Client, error) {
 		return nil, fmt.Errorf("未提供认证方式（密码或私钥）")
 	}
 
+	// 设置主机密钥验证回调
+	var hostKeyCallback ssh.HostKeyCallback
+	if config.StrictHostKey {
+		// 使用 known_hosts 文件验证
+		knownHostsPath := getKnownHostsPath()
+		callback, err := knownhosts.New(knownHostsPath)
+		if err != nil {
+			return nil, fmt.Errorf("无法读取 known_hosts 文件 (%s): %w\n提示: 请先手动连接一次服务器以添加主机密钥", knownHostsPath, err)
+		}
+		hostKeyCallback = callback
+	} else {
+		// 忽略主机密钥验证（默认）
+		hostKeyCallback = ssh.InsecureIgnoreHostKey()
+	}
+
 	sshConfig := &ssh.ClientConfig{
 		User:            config.User,
 		Auth:            authMethods,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: hostKeyCallback,
 	}
 
 	address := fmt.Sprintf("%s:%s", config.Host, config.Port)
@@ -48,6 +65,21 @@ func SSHClient(config *Config) (*ssh.Client, error) {
 	}
 
 	return client, nil
+}
+
+// getKnownHostsPath 获取 known_hosts 文件路径
+func getKnownHostsPath() string {
+	// 优先使用环境变量
+	if path := os.Getenv("SSH_KNOWN_HOSTS"); path != "" {
+		return path
+	}
+
+	// Windows 默认路径: %USERPROFILE%\.ssh\known_hosts
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		homeDir = os.Getenv("USERPROFILE")
+	}
+	return filepath.Join(homeDir, ".ssh", "known_hosts")
 }
 
 // runShell 启动交互式Shell

@@ -227,6 +227,7 @@ func printUsage() {
 	fmt.Println("  -f <文件>      从文件读取密码（单行）或配置文件")
 	fmt.Println("  -i <私钥>      使用私钥认证")
 	fmt.Println("  -e             从环境变量 SSHPASS 读取密码")
+	fmt.Println("  -k             启用严格主机密钥验证（使用 known_hosts 文件）")
 	fmt.Println("  -v             显示版本")
 	fmt.Println("\n示例:")
 	fmt.Println("  sshpass -p 'pass' ssh user@example.com 'whoami'")
