@@ -22,6 +22,40 @@ type ParsedCommand struct {
 	SCPArgs []string // scp 参数
 }
 
+// parseUserHostPath 解析 user@host:path 格式，支持 IPv6 地址
+// 返回 user, host, path
+func parseUserHostPath(arg string) (user, host, remotePath string) {
+	atIdx := strings.Index(arg, "@")
+	if atIdx <= 0 {
+		return "", "", ""
+	}
+	user = arg[:atIdx]
+	remainder := arg[atIdx+1:]
+
+	// 检查是否是 IPv6 地址（以 [ 开头）
+	if strings.HasPrefix(remainder, "[") {
+		// IPv6 格式: [::1]:path 或 [2001:db8::1]:path
+		closeBracket := strings.Index(remainder, "]")
+		if closeBracket > 0 {
+			host = remainder[:closeBracket+1] // 包含方括号
+			// 检查 ]: 后面是否有路径
+			if closeBracket+1 < len(remainder) && remainder[closeBracket+1] == ':' {
+				remotePath = remainder[closeBracket+2:]
+			}
+		}
+	} else {
+		// IPv4 或主机名: host:path
+		colonIdx := strings.Index(remainder, ":")
+		if colonIdx > 0 {
+			host = remainder[:colonIdx]
+			remotePath = remainder[colonIdx+1:]
+		} else {
+			host = remainder
+		}
+	}
+	return user, host, remotePath
+}
+
 // parseSSHArgs 解析ssh风格的参数 (user@host 或 -p port user@host)
 func parseSSHArgs(args []string) (*Config, string) {
 	config := &Config{
@@ -54,8 +88,8 @@ func parseSSHArgs(args []string) (*Config, string) {
 			continue
 		}
 		if strings.Contains(arg, "@") {
-			// user@host 格式
-			parts := strings.Split(arg, "@")
+			// user@host 格式（支持 IPv6）
+			parts := strings.SplitN(arg, "@", 2)
 			if len(parts) == 2 {
 				config.User = parts[0]
 				config.Host = parts[1]
@@ -106,12 +140,11 @@ func parseSCPArgs(args []string) (*Config, []string) {
 			continue
 		}
 		if strings.Contains(arg, "@") && strings.Contains(arg, ":") {
-			// user@host:path 格式
-			atIdx := strings.Index(arg, "@")
-			colonIdx := strings.Index(arg, ":")
-			if atIdx > 0 && colonIdx > atIdx {
-				config.User = arg[:atIdx]
-				config.Host = arg[atIdx+1 : colonIdx]
+			// user@host:path 格式（支持 IPv6）
+			user, host, _ := parseUserHostPath(arg)
+			if user != "" && host != "" {
+				config.User = user
+				config.Host = host
 			}
 		}
 		scpArgs = append(scpArgs, arg)
@@ -153,12 +186,11 @@ func parseRsyncArgs(args []string) (*Config, []string) {
 			continue
 		}
 		if strings.Contains(arg, "@") && strings.Contains(arg, ":") {
-			// user@host:path 格式
-			atIdx := strings.Index(arg, "@")
-			colonIdx := strings.Index(arg, ":")
-			if atIdx > 0 && colonIdx > atIdx {
-				config.User = arg[:atIdx]
-				config.Host = arg[atIdx+1 : colonIdx]
+			// user@host:path 格式（支持 IPv6）
+			user, host, _ := parseUserHostPath(arg)
+			if user != "" && host != "" {
+				config.User = user
+				config.Host = host
 			}
 		}
 		rsyncArgs = append(rsyncArgs, arg)

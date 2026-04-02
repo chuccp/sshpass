@@ -65,12 +65,16 @@ func main() {
 	switch cmdType {
 	case CommandSCP:
 		config, scpArgs := parseSCPArgs(remainingArgs)
-		config.Password = pass
-		config.KeyPath = *keyPath
+		if pass != "" {
+			config.Password = pass
+		}
+		if *keyPath != "" {
+			config.KeyPath = *keyPath
+		}
 		if *host != "" {
 			config.Host = *host
 		}
-		if *user != "" && *user != "root" {
+		if *user != "" {
 			config.User = *user
 		}
 		if *port != "" && *port != "22" {
@@ -85,12 +89,16 @@ func main() {
 
 	case CommandRsync:
 		config, rsyncArgs := parseRsyncArgs(remainingArgs)
-		config.Password = pass
-		config.KeyPath = *keyPath
+		if pass != "" {
+			config.Password = pass
+		}
+		if *keyPath != "" {
+			config.KeyPath = *keyPath
+		}
 		if *host != "" {
 			config.Host = *host
 		}
-		if *user != "" && *user != "root" {
+		if *user != "" {
 			config.User = *user
 		}
 		if *port != "" && *port != "22" {
@@ -109,12 +117,16 @@ func main() {
 		if len(remainingArgs) > 0 && (pass != "" || *keyPath != "") {
 			// sshpass风格: -p password 或 -i keyfile ssh user@host [command]
 			config, cmdToRun = parseSSHArgs(remainingArgs)
-			config.Password = pass
-			config.KeyPath = *keyPath
+			if pass != "" {
+				config.Password = pass
+			}
+			if *keyPath != "" {
+				config.KeyPath = *keyPath
+			}
 			if *host != "" {
 				config.Host = *host
 			}
-			if *user != "" && *user != "root" {
+			if *user != "" {
 				config.User = *user
 			}
 			if *port != "" && *port != "22" {

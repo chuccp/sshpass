@@ -29,8 +29,8 @@ func runSCP(config *Config, args []string) error {
 	// 解析源和目标
 	for _, arg := range nonFlagArgs {
 		if strings.Contains(arg, "@") && strings.Contains(arg, ":") {
-			// 远程路径 user@host:path
-			_, remotePath, _ = strings.Cut(arg, ":")
+			// 远程路径 user@host:path（支持 IPv6）
+			_, _, remotePath = parseUserHostPath(arg)
 		} else if arg != "scp" {
 			// 本地文件
 			if localFile == "" {
@@ -91,10 +91,10 @@ func runRsync(config *Config, args []string) error {
 	// 判断方向
 	if strings.Contains(src, "@") {
 		// 远程到本地（下载）
-		_, remotePath, _ := strings.Cut(src, ":")
+		_, _, remotePath := parseUserHostPath(src)
 		return downloadFile(client, remotePath, dst)
 	}
 	// 本地到远程（上传）
-	_, remotePath, _ := strings.Cut(dst, ":")
+	_, _, remotePath := parseUserHostPath(dst)
 	return uploadFile(client, src, remotePath)
 }

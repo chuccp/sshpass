@@ -208,8 +208,8 @@ func downloadSingleFile(sftpClient *sftp.Client, remotePath, localPath string) e
 
 // downloadDirectory 下载整个目录
 func downloadDirectory(sftpClient *sftp.Client, remotePath, localPath string) error {
-	// 获取远程目录名
-	remoteBase := path.Base(remotePath)
+	// 获取远程目录名（先去除末尾的 /，避免 path.Base 返回空字符串）
+	remoteBase := path.Base(strings.TrimSuffix(remotePath, "/"))
 
 	// 确保本地目录存在
 	localDir := filepath.Join(localPath, remoteBase)
