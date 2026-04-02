@@ -60,3 +60,17 @@ func parseConfigFile(filename string) (*Config, error) {
 
 	return config, nil
 }
+
+// readPasswordFile 从单行密码文件读取密码
+func readPasswordFile(filename string) (string, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return "", fmt.Errorf("无法读取密码文件: %w", err)
+	}
+	return strings.TrimSpace(string(data)), nil
+}
+
+// getEnvPassword 从环境变量获取密码
+func getEnvPassword() string {
+	return os.Getenv("SSHPASS")
+}
