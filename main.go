@@ -38,14 +38,14 @@ func main() {
 	// 获取剩余参数（用于sshpass风格命令）
 	remainingArgs := flag.Args()
 
-	// 获取密码：优先级 -p > -f > -e > SSHPASS
+	// 获取密码：优先级 -p > 配置文件 > 密码文件 > -e > SSHPASS
 	pass := *password
 	if pass == "" && *configFile != "" {
-		// 尝试读取密码文件（单行密码）
-		pass, err = readPasswordFile(*configFile)
+		// 先尝试作为配置文件解析
+		config, err = parseConfigFile(*configFile)
 		if err != nil {
-			// 如果失败，尝试作为配置文件解析
-			config, err = parseConfigFile(*configFile)
+			// 不是配置文件，尝试作为单行密码文件
+			pass, err = readPasswordFile(*configFile)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "错误: %v\n", err)
 				os.Exit(1)
@@ -104,15 +104,6 @@ func main() {
 
 	// SSH 命令处理
 	if config == nil {
-		// 优先从配置文件读取
-		if *configFile != "" && config == nil {
-			config, err = parseConfigFile(*configFile)
-			if err != nil {
-				// 已经尝试过密码文件，这里只是配置文件解析失败
-				config = &Config{}
-			}
-		}
-
 		if len(remainingArgs) > 0 && (pass != "" || *keyPath != "") {
 			// sshpass风格: -p password 或 -i keyfile ssh user@host [command]
 			config, cmdToRun = parseSSHArgs(remainingArgs)

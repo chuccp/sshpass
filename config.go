@@ -16,7 +16,7 @@ type Config struct {
 	KeyPath  string // 私钥文件路径
 }
 
-// parseConfigFile 解析配置文件
+// parseConfigFile 解析配置文件 (格式: key: value)
 func parseConfigFile(filename string) (*Config, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -32,30 +32,36 @@ func parseConfigFile(filename string) (*Config, error) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
+		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
 
-		// 解析各种格式的配置行
-		if strings.Contains(line, "IP Address:") {
-			config.Host = strings.TrimSpace(strings.Split(line, ":")[1])
-		} else if strings.Contains(line, "Username:") {
-			config.User = strings.TrimSpace(strings.Split(line, ":")[1])
-		} else if strings.Contains(line, "Root Password:") || strings.Contains(line, "Password:") {
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) == 2 {
-				config.Password = strings.TrimSpace(parts[1])
-			}
-		} else if strings.Contains(line, "SSH Port") {
-			parts := strings.Split(line, "Port")
-			if len(parts) == 2 {
-				config.Port = strings.TrimSpace(parts[1])
-			}
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.ToLower(strings.TrimSpace(parts[0]))
+		value := strings.TrimSpace(parts[1])
+
+		switch key {
+		case "host":
+			config.Host = value
+		case "user", "username":
+			config.User = value
+		case "password":
+			config.Password = value
+		case "port":
+			config.Port = value
+		case "key", "keypath":
+			config.KeyPath = value
 		}
 	}
 
-	if config.Host == "" || config.Password == "" {
-		return nil, fmt.Errorf("配置文件缺少必要信息(主机或密码)")
+	if config.Host == "" {
+		return nil, fmt.Errorf("配置文件缺少 host")
+	}
+	if config.Password == "" && config.KeyPath == "" {
+		return nil, fmt.Errorf("配置文件缺少 password 或 key")
 	}
 
 	return config, nil

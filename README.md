@@ -89,11 +89,17 @@ sshpass -p <password> rsync -avz <local_path> user@host:<remote_path>
 
 ## Configuration File Format
 
+```yaml
+host: example.com
+username: root
+password: your_password
+port: 22
+# key: ~/.ssh/id_ed25519  # optional, use private key instead of password
 ```
-IP Address:example.com
-Username:root
-Root Password: your_password
-SSH Port 22
+
+Usage:
+```bash
+sshpass -f server.config -c 'ls -la'
 ```
 
 ## Complete Examples

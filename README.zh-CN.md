@@ -89,11 +89,17 @@ sshpass -p <密码> rsync -avz <本地路径> user@host:<远程路径>
 
 ## 配置文件格式
 
+```yaml
+host: example.com
+username: root
+password: your_password
+port: 22
+# key: ~/.ssh/id_ed25519  # 可选，使用私钥代替密码
 ```
-IP Address:example.com
-Username:root
-Root Password: your_password
-SSH Port 22
+
+使用方式：
+```bash
+sshpass -f server.config -c 'ls -la'
 ```
 
 ## 完整示例
