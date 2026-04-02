@@ -1,91 +1,93 @@
 # sshpass
 
-Windows 版 sshpass 工具，实现类似 Linux sshpass 的功能。
+[English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md)
 
-## 快速开始
+A Windows implementation of sshpass, providing similar functionality to the Linux sshpass tool.
+
+## Quick Start
 
 ```bash
-# 密码登录执行命令
+# Password login and execute command
 sshpass -p 'password' ssh user@example.com 'whoami'
 
-# 私钥登录执行命令
+# Private key login and execute command
 sshpass -i ~/.ssh/id_ed25519 ssh user@example.com 'hostname'
 
-# 上传文件
+# Upload file
 sshpass -h example.com -p 'password' -local file.txt -remote /tmp/file.txt
 
-# 下载文件
+# Download file
 sshpass -h example.com -p 'password' -d -remote /tmp/file.txt -local ./file.txt
 ```
 
-## 命令格式
+## Command Format
 
-### SSH 登录
+### SSH Login
 
 ```bash
-# 密码认证
-sshpass -p <密码> ssh [user@host] [命令]
-sshpass -p <密码> ssh -p <端口> user@host '命令'
-sshpass -p <密码> ssh -o StrictHostKeyChecking=no user@host
+# Password authentication
+sshpass -p <password> ssh [user@host] [command]
+sshpass -p <password> ssh -p <port> user@host 'command'
+sshpass -p <password> ssh -o StrictHostKeyChecking=no user@host
 
-# 私钥认证
-sshpass -i <私钥路径> ssh [user@host] [命令]
+# Private key authentication
+sshpass -i <private_key_path> ssh [user@host] [command]
 
-# 环境变量密码
-SSHPASS=<密码> sshpass -e ssh user@host
+# Password from environment variable
+SSHPASS=<password> sshpass -e ssh user@host
 
-# 密码文件
+# Password from file
 echo 'password' > pass.txt
 sshpass -f pass.txt ssh user@host
 
-# 配置文件（多行格式）
+# Configuration file (multi-line format)
 sshpass -f server.config
 ```
 
-### 文件传输
+### File Transfer
 
 ```bash
-# 上传文件
-sshpass -h <主机> -p <密码> -local <本地路径> -remote <远程路径>
+# Upload file
+sshpass -h <host> -p <password> -local <local_path> -remote <remote_path>
 
-# 上传目录（自动递归）
-sshpass -h <主机> -p <密码> -local <本地目录> -remote <远程目录>
+# Upload directory (auto-recursive)
+sshpass -h <host> -p <password> -local <local_dir> -remote <remote_dir>
 
-# 下载文件/目录
-sshpass -h <主机> -p <密码> -d -remote <远程路径> -local <本地路径>
+# Download file/directory
+sshpass -h <host> -p <password> -d -remote <remote_path> -local <local_path>
 ```
 
-### SCP 风格
+### SCP Style
 
 ```bash
-sshpass -p <密码> scp <本地文件> user@host:<远程路径>
-sshpass -p <密码> scp user@host:<远程文件> <本地路径>
+sshpass -p <password> scp <local_file> user@host:<remote_path>
+sshpass -p <password> scp user@host:<remote_file> <local_path>
 ```
 
-### Rsync 风格
+### Rsync Style
 
 ```bash
-sshpass -p <密码> rsync -avz <本地路径> user@host:<远程路径>
+sshpass -p <password> rsync -avz <local_path> user@host:<remote_path>
 ```
 
-## 参数说明
+## Parameters
 
-| 参数 | 说明 | 示例 |
-|------|------|------|
-| `-p` | 密码 | `-p 'secret123'` |
-| `-i` | 私钥路径 | `-i ~/.ssh/id_ed25519` |
-| `-f` | 密码文件/配置文件 | `-f pass.txt` |
-| `-e` | 从环境变量 SSHPASS 读密码 | `SSHPASS='pass' sshpass -e ssh ...` |
-| `-h` | 主机地址 | `-h example.com` |
-| `-u` | 用户名，默认 root | `-u ubuntu` |
-| `-P` | 端口，默认 22 | `-P 2222` |
-| `-c` | 执行的命令 | `-c 'ls -la'` |
-| `-local` | 本地路径（上传/下载） | `-local ./file.txt` |
-| `-remote` | 远程路径（上传/下载） | `-remote /tmp/file.txt` |
-| `-d` | 下载模式 | `-d` |
-| `-v` | 显示版本 | `-v` |
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `-p` | Password | `-p 'secret123'` |
+| `-i` | Private key path | `-i ~/.ssh/id_ed25519` |
+| `-f` | Password file / config file | `-f pass.txt` |
+| `-e` | Read password from SSHPASS env var | `SSHPASS='pass' sshpass -e ssh ...` |
+| `-h` | Host address | `-h example.com` |
+| `-u` | Username, default: root | `-u ubuntu` |
+| `-P` | Port, default: 22 | `-P 2222` |
+| `-c` | Command to execute | `-c 'ls -la'` |
+| `-local` | Local path (upload/download) | `-local ./file.txt` |
+| `-remote` | Remote path (upload/download) | `-remote /tmp/file.txt` |
+| `-d` | Download mode | `-d` |
+| `-v` | Show version | `-v` |
 
-## 配置文件格式
+## Configuration File Format
 
 ```
 IP Address:example.com
@@ -94,47 +96,47 @@ Root Password: your_password
 SSH Port 22
 ```
 
-## 完整示例
+## Complete Examples
 
 ```bash
-# 1. 密码登录执行命令
+# 1. Password login and execute command
 sshpass -p 'mypass' ssh root@192.168.1.100 'docker ps'
 
-# 2. 私钥登录执行 sudo 命令
+# 2. Private key login and execute sudo command
 sshpass -i ~/.ssh/id_ed25519 ssh ubuntu@server.com 'sudo systemctl restart nginx'
 
-# 3. 上传整个目录到服务器
+# 3. Upload entire directory to server
 sshpass -h server.com -p 'mypass' -local ./dist -remote /var/www/html
 
-# 4. 下载服务器日志目录
+# 4. Download server log directory
 sshpass -h server.com -p 'mypass' -d -remote /var/log/nginx -local ./logs
 
-# 5. SCP 上传文件
+# 5. SCP upload file
 sshpass -p 'mypass' scp ./app.jar user@server.com:/opt/app/
 
-# 6. 环境变量传递密码（更安全）
+# 6. Password via environment variable (more secure)
 export SSHPASS='mypass'
 sshpass -e ssh user@server.com 'whoami'
 ```
 
-## Git Bash 注意事项
+## Git Bash Notes
 
-远程路径用 `//` 开头避免路径转换：
+Use `//` prefix for remote paths to avoid path conversion:
 ```bash
-# 错误：/tmp 会被转换为 Windows 路径
+# Wrong: /tmp will be converted to Windows path
 sshpass ... -remote /tmp/file.txt
 
-# 正确：使用双斜杠
+# Correct: use double slashes
 sshpass ... -remote //tmp/file.txt
 ```
 
-## 安装
+## Build
 
 ```bash
 go build -o sshpass.exe .
 ```
 
-## 依赖
+## Dependencies
 
 - Go 1.23+
 - golang.org/x/crypto/ssh
