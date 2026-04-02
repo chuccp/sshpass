@@ -4,6 +4,14 @@
 
 A Windows implementation of sshpass, providing similar functionality to the Linux sshpass tool.
 
+## Download
+
+Download the latest release from [GitHub Releases](https://github.com/tomcataoo/win-sshpass/releases):
+
+1. Go to [Releases](https://github.com/tomcataoo/win-sshpass/releases) page
+2. Download `win-sshpass-*.zip` from the latest release
+3. Extract `win-sshpass.exe` to your preferred location
+
 ## Quick Start
 
 ```bash

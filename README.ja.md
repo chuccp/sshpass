@@ -4,6 +4,14 @@
 
 Windows 版 win-sshpass ツール。Linux の sshpass と同様の機能を提供します。
 
+## ダウンロード
+
+[GitHub Releases](https://github.com/tomcataoo/win-sshpass/releases) から最新版をダウンロード：
+
+1. [Releases](https://github.com/tomcataoo/win-sshpass/releases) ページを開く
+2. 最新版の `win-sshpass-*.zip` をダウンロード
+3. `win-sshpass.exe` を任意の場所に展開
+
 ## クイックスタート
 
 ```bash
