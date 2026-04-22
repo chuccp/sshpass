@@ -7,21 +7,21 @@ import (
 	"strings"
 )
 
-// Config 表示SSH连接配置
+// Config represents SSH connection configuration
 type Config struct {
 	Host          string
 	User          string
 	Password      string
 	Port          string
-	KeyPath       string // 私钥文件路径
-	StrictHostKey bool   // 是否验证主机密钥
+	KeyPath       string // private key file path
+	StrictHostKey bool   // whether to verify host key
 }
 
-// parseConfigFile 解析配置文件 (格式: key: value)
+// parseConfigFile parses a config file (format: key: value)
 func parseConfigFile(filename string) (*Config, error) {
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("无法打开配置文件: %w", err)
+		return nil, fmt.Errorf("failed to open config file: %w", err)
 	}
 	defer file.Close()
 
@@ -59,25 +59,25 @@ func parseConfigFile(filename string) (*Config, error) {
 	}
 
 	if config.Host == "" {
-		return nil, fmt.Errorf("配置文件缺少 host")
+		return nil, fmt.Errorf("config file missing host")
 	}
 	if config.Password == "" && config.KeyPath == "" {
-		return nil, fmt.Errorf("配置文件缺少 password 或 key")
+		return nil, fmt.Errorf("config file missing password or key")
 	}
 
 	return config, nil
 }
 
-// readPasswordFile 从单行密码文件读取密码
+// readPasswordFile reads password from a single-line password file
 func readPasswordFile(filename string) (string, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return "", fmt.Errorf("无法读取密码文件: %w", err)
+		return "", fmt.Errorf("failed to read password file: %w", err)
 	}
 	return strings.TrimSpace(string(data)), nil
 }
 
-// getEnvPassword 从环境变量获取密码
+// getEnvPassword gets password from environment variable
 func getEnvPassword() string {
 	return os.Getenv("SSHPASS")
 }

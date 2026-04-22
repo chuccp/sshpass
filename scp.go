@@ -5,41 +5,41 @@ import (
 	"strings"
 )
 
-// runSCP 执行 scp 命令（通过 SSH 连接传输文件）
+// runSCP executes the scp command (file transfer over SSH)
 func runSCP(config *Config, args []string) error {
-	// 建立SSH连接
+	// establish SSH connection
 	client, err := SSHClient(config)
 	if err != nil {
 		return err
 	}
 	defer client.Close()
 
-	// 解析 scp 参数，确定源和目标
+	// parse scp arguments to determine source and target
 	var localFile, remotePath string
 	var isUpload bool
 	var nonFlagArgs []string
 
-	// 收集非标志参数
+	// collect non-flag arguments
 	for _, arg := range args {
 		if !strings.HasPrefix(arg, "-") {
 			nonFlagArgs = append(nonFlagArgs, arg)
 		}
 	}
 
-	// 解析源和目标
+	// parse source and target
 	for _, arg := range nonFlagArgs {
 		if strings.Contains(arg, "@") && strings.Contains(arg, ":") {
-			// 远程路径 user@host:path（支持 IPv6）
+			// remote path user@host:path (supports IPv6)
 			_, _, remotePath = parseUserHostPath(arg)
 		} else if arg != "scp" {
-			// 本地文件
+			// local file
 			if localFile == "" {
 				localFile = arg
 			}
 		}
 	}
 
-	// 判断上传还是下载：如果远程路径在最后一个参数，则是上传
+	// determine upload or download: remote path in last argument means upload
 	for i, arg := range nonFlagArgs {
 		if strings.Contains(arg, "@") && strings.Contains(arg, ":") {
 			isUpload = (i == len(nonFlagArgs)-1)
@@ -48,7 +48,7 @@ func runSCP(config *Config, args []string) error {
 	}
 
 	if localFile == "" || remotePath == "" {
-		return fmt.Errorf("无法解析 scp 参数: %v", args)
+		return fmt.Errorf("failed to parse scp arguments: %v", args)
 	}
 
 	if isUpload {
@@ -57,9 +57,9 @@ func runSCP(config *Config, args []string) error {
 	return downloadFile(client, remotePath, localFile)
 }
 
-// runRsync 执行 rsync 命令（通过 SSH 连接同步文件）
+// runRsync executes rsync command (file sync over SSH)
 func runRsync(config *Config, args []string) error {
-	// 简单实现：解析源和目标
+	// simple implementation: parse source and target
 	var src, dst string
 	for _, arg := range args {
 		if strings.Contains(arg, "@") && strings.Contains(arg, ":") {
@@ -78,23 +78,23 @@ func runRsync(config *Config, args []string) error {
 	}
 
 	if src == "" || dst == "" {
-		return fmt.Errorf("无法解析 rsync 参数")
+		return fmt.Errorf("failed to parse rsync arguments")
 	}
 
-	// 建立SSH连接
+	// establish SSH connection
 	client, err := SSHClient(config)
 	if err != nil {
 		return err
 	}
 	defer client.Close()
 
-	// 判断方向
+	// determine direction
 	if strings.Contains(src, "@") {
-		// 远程到本地（下载）
+		// remote to local (download)
 		_, _, remotePath := parseUserHostPath(src)
 		return downloadFile(client, remotePath, dst)
 	}
-	// 本地到远程（上传）
+	// local to remote (upload)
 	_, _, remotePath := parseUserHostPath(dst)
 	return uploadFile(client, src, remotePath)
 }

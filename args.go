@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Command_type 命令类型
+// CommandType represents the command type
 type CommandType int
 
 const (
@@ -14,16 +14,16 @@ const (
 	CommandRsync
 )
 
-// ParsedCommand 解析后的命令
+// ParsedCommand represents the parsed command
 type ParsedCommand struct {
 	Config  *Config
 	Type    CommandType
-	Command string   // 要执行的命令
-	SCPArgs []string // scp 参数
+	Command string   // command to execute
+	SCPArgs []string // scp arguments
 }
 
-// parseUserHostPath 解析 user@host:path 格式，支持 IPv6 地址
-// 返回 user, host, path
+// parseUserHostPath parses user@host:path format, supporting IPv6
+// returns user, host, path
 func parseUserHostPath(arg string) (user, host, remotePath string) {
 	atIdx := strings.Index(arg, "@")
 	if atIdx <= 0 {
@@ -32,19 +32,19 @@ func parseUserHostPath(arg string) (user, host, remotePath string) {
 	user = arg[:atIdx]
 	remainder := arg[atIdx+1:]
 
-	// 检查是否是 IPv6 地址（以 [ 开头）
+	// check if IPv6 address (starts with [)
 	if strings.HasPrefix(remainder, "[") {
-		// IPv6 格式: [::1]:path 或 [2001:db8::1]:path
+		// IPv6 format: [::1]:path or [2001:db8::1]:path
 		closeBracket := strings.Index(remainder, "]")
 		if closeBracket > 0 {
-			host = remainder[:closeBracket+1] // 包含方括号
-			// 检查 ]: 后面是否有路径
+			host = remainder[:closeBracket+1] // including square brackets
+			// check if there is a path after ]:
 			if closeBracket+1 < len(remainder) && remainder[closeBracket+1] == ':' {
 				remotePath = remainder[closeBracket+2:]
 			}
 		}
 	} else {
-		// IPv4 或主机名: host:path
+		// IPv4 or hostname: host:path
 		colonIdx := strings.Index(remainder, ":")
 		if colonIdx > 0 {
 			host = remainder[:colonIdx]
@@ -56,7 +56,7 @@ func parseUserHostPath(arg string) (user, host, remotePath string) {
 	return user, host, remotePath
 }
 
-// parseSSHArgs 解析ssh风格的参数 (user@host 或 -p port user@host)
+// parseSSHArgs parses ssh-style arguments (user@host or -p port user@host)
 func parseSSHArgs(args []string) (*Config, string) {
 	config := &Config{
 		User: "root",
@@ -68,7 +68,7 @@ func parseSSHArgs(args []string) (*Config, string) {
 	for i < len(args) {
 		arg := args[i]
 		if arg == "ssh" {
-			// 跳过 ssh 命令本身
+			// skip the ssh command itself
 			i++
 			continue
 		}
@@ -83,12 +83,12 @@ func parseSSHArgs(args []string) (*Config, string) {
 			continue
 		}
 		if arg == "-o" && i+1 < len(args) {
-			// 跳过 ssh 选项如 StrictHostKeyChecking=no
+			// skip ssh options like StrictHostKeyChecking=no
 			i += 2
 			continue
 		}
 		if strings.Contains(arg, "@") {
-			// user@host 格式（支持 IPv6）
+			// user@host format (supports IPv6)
 			parts := strings.SplitN(arg, "@", 2)
 			if len(parts) == 2 {
 				config.User = parts[0]
@@ -97,7 +97,7 @@ func parseSSHArgs(args []string) (*Config, string) {
 			i++
 			continue
 		}
-		// 剩余的作为命令
+		// remaining args as command
 		if config.Host != "" {
 			command = strings.Join(args[i:], " ")
 			break
@@ -108,7 +108,7 @@ func parseSSHArgs(args []string) (*Config, string) {
 	return config, command
 }
 
-// parseSCPArgs 解析 scp 命令参数
+// parseSCPArgs parses scp command arguments
 func parseSCPArgs(args []string) (*Config, []string) {
 	config := &Config{
 		User: "root",
@@ -124,7 +124,7 @@ func parseSCPArgs(args []string) (*Config, []string) {
 			continue
 		}
 		if arg == "-P" && i+1 < len(args) {
-			// scp 使用大写 -P 指定端口
+			// scp uses uppercase -P for port
 			config.Port = args[i+1]
 			scpArgs = append(scpArgs, "-P", args[i+1])
 			i += 2
@@ -140,7 +140,7 @@ func parseSCPArgs(args []string) (*Config, []string) {
 			continue
 		}
 		if strings.Contains(arg, "@") && strings.Contains(arg, ":") {
-			// user@host:path 格式（支持 IPv6）
+			// user@host:path format (supports IPv6)
 			user, host, _ := parseUserHostPath(arg)
 			if user != "" && host != "" {
 				config.User = user
@@ -154,7 +154,7 @@ func parseSCPArgs(args []string) (*Config, []string) {
 	return config, scpArgs
 }
 
-// parseRsyncArgs 解析 rsync 命令参数
+// parseRsyncArgs parses rsync command arguments
 func parseRsyncArgs(args []string) (*Config, []string) {
 	config := &Config{
 		User: "root",
@@ -170,23 +170,23 @@ func parseRsyncArgs(args []string) (*Config, []string) {
 			continue
 		}
 		if arg == "-e" && i+1 < len(args) {
-			// 跳过 -e ssh 选项
+			// skip -e ssh option
 			i += 2
 			continue
 		}
 		if strings.HasPrefix(arg, "--rsh=") {
-			// 跳过 --rsh=ssh 选项
+			// skip --rsh=ssh option
 			i++
 			continue
 		}
 		if strings.HasPrefix(arg, "-p") && len(arg) > 2 {
-			// -p22 格式的端口
+			// -p22 format port
 			config.Port = arg[2:]
 			i++
 			continue
 		}
 		if strings.Contains(arg, "@") && strings.Contains(arg, ":") {
-			// user@host:path 格式（支持 IPv6）
+			// user@host:path format (supports IPv6)
 			user, host, _ := parseUserHostPath(arg)
 			if user != "" && host != "" {
 				config.User = user
@@ -200,7 +200,7 @@ func parseRsyncArgs(args []string) (*Config, []string) {
 	return config, rsyncArgs
 }
 
-// detectCommandType 检测命令类型
+// detectCommandType detects the command type
 func detectCommandType(args []string) CommandType {
 	for _, arg := range args {
 		if arg == "scp" {
@@ -213,23 +213,23 @@ func detectCommandType(args []string) CommandType {
 	return CommandSSH
 }
 
-// printUsage 打印使用说明
+// printUsage prints the usage
 func printUsage() {
-	fmt.Println("用法:")
-	fmt.Println("  sshpass [-p <密码> | -f <密码文件>] ssh [user@host] [命令]")
-	fmt.Println("  sshpass [-p <密码> | -f <密码文件>] scp [选项] [user@host:]path")
-	fmt.Println("  sshpass [-p <密码> | -f <密码文件>] rsync [选项] [user@host:]path")
-	fmt.Println("  sshpass -i <私钥路径> ssh [user@host] [命令]")
-	fmt.Println("  sshpass -f <配置文件> [-c <命令>]")
-	fmt.Println("  sshpass -h <主机> -p <密码> [-u <用户>] [-P <端口>]")
-	fmt.Println("\n选项:")
-	fmt.Println("  -p <密码>      直接指定密码")
-	fmt.Println("  -f <文件>      从文件读取密码（单行）或配置文件")
-	fmt.Println("  -i <私钥>      使用私钥认证")
-	fmt.Println("  -e             从环境变量 SSHPASS 读取密码")
-	fmt.Println("  -k             启用严格主机密钥验证（使用 known_hosts 文件）")
-	fmt.Println("  -v             显示版本")
-	fmt.Println("\n示例:")
+	fmt.Println("Usage:")
+	fmt.Println("  sshpass [-p <password> | -f <passfile>] ssh [user@host] [command]")
+	fmt.Println("  sshpass [-p <password> | -f <passfile>] scp [options] [user@host:]path")
+	fmt.Println("  sshpass [-p <password> | -f <passfile>] rsync [options] [user@host:]path")
+	fmt.Println("  sshpass -i <keypath> ssh [user@host] [command]")
+	fmt.Println("  sshpass -f <configfile> [-c <command>]")
+	fmt.Println("  sshpass -h <host> -p <password> [-u <user>] [-P <port>]")
+	fmt.Println("\nOptions:")
+	fmt.Println("  -p <password>      specify password directly")
+	fmt.Println("  -f <file>      read password from file (single line) or config file")
+	fmt.Println("  -i <key>      use private key authentication")
+	fmt.Println("  -e             read password from environment variable SSHPASS")
+	fmt.Println("  -k             enable strict host key verification (use known_hosts file)")
+	fmt.Println("  -v             show version")
+	fmt.Println("\nExamples:")
 	fmt.Println("  sshpass -p 'pass' ssh user@example.com 'whoami'")
 	fmt.Println("  sshpass -f pass.txt ssh user@example.com")
 	fmt.Println("  SSHPASS='pass' sshpass -e ssh user@example.com")
@@ -238,7 +238,7 @@ func printUsage() {
 	fmt.Println("  sshpass -p 'pass' rsync -avz ./ user@example.com:/backup/")
 }
 
-// printVersion 打印版本信息
+// printVersion prints version info
 func printVersion() {
 	fmt.Printf("sshpass version %s (Windows)\n", version)
 }

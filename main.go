@@ -7,28 +7,24 @@ import (
 	"strings"
 )
 
-var (
-	version = "v0.3.2"
-)
-
 func main() {
-	// 命令行参数
-	configFile := flag.String("f", "", "密码文件或配置文件路径")
-	host := flag.String("h", "", "主机地址")
-	user := flag.String("u", "root", "用户名")
-	password := flag.String("p", "", "密码")
-	port := flag.String("P", "22", "端口")
-	keyPath := flag.String("i", "", "私钥文件路径")
-	command := flag.String("c", "", "要执行的命令")
-	localPath := flag.String("local", "", "本地文件路径(用于上传/下载)")
-	remotePath := flag.String("remote", "", "远程文件路径(用于上传/下载)")
-	download := flag.Bool("d", false, "下载模式（从远程下载到本地）")
-	useEnv := flag.Bool("e", false, "从环境变量 SSHPASS 读取密码")
-	strictHostKey := flag.Bool("k", false, "启用严格主机密钥验证")
-	showVersion := flag.Bool("v", false, "显示版本")
+	// command line arguments
+	configFile := flag.String("f", "", "password file or config file path")
+	host := flag.String("h", "", "host address")
+	user := flag.String("u", "root", "username")
+	password := flag.String("p", "", "password")
+	port := flag.String("P", "22", "port")
+	keyPath := flag.String("i", "", "private key file path")
+	command := flag.String("c", "", "command to execute")
+	localPath := flag.String("local", "", "local file path (for upload/download)")
+	remotePath := flag.String("remote", "", "remote file path (for upload/download)")
+	download := flag.Bool("d", false, "download mode (remote to local)")
+	useEnv := flag.Bool("e", false, "read password from environment variable SSHPASS")
+	strictHostKey := flag.Bool("k", false, "enable strict host key verification")
+	showVersion := flag.Bool("v", false, "show version")
 	flag.Parse()
 
-	// 显示版本
+	// display version
 	if *showVersion {
 		printVersion()
 		return
@@ -38,23 +34,23 @@ func main() {
 	var err error
 	var cmdToRun string
 
-	// 获取剩余参数（用于sshpass风格命令）
+	// get remaining arguments (for sshpass-style commands)
 	remainingArgs := flag.Args()
 
-	// 获取密码：优先级 -p > 配置文件 > 密码文件 > -e > SSHPASS
+	// get password: priority -p > config file > password file > -e > SSHPASS
 	pass := *password
 	if pass == "" && *configFile != "" {
-		// 先尝试作为配置文件解析
+		// try parsing as config file first
 		config, err = parseConfigFile(*configFile)
 		if err != nil {
-			// 不是配置文件，尝试作为单行密码文件
+			// not a config file, try as single-line password file
 			pass, err = readPasswordFile(*configFile)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "错误: %v\n", err)
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
 		} else {
-			// 配置文件解析成功，设置命令行指定的 StrictHostKey
+			// config file parsed successfully, set StrictHostKey from command line
 			config.StrictHostKey = *strictHostKey
 		}
 	}
@@ -62,10 +58,10 @@ func main() {
 		pass = getEnvPassword()
 	}
 
-	// 检测命令类型
+	// detect command type
 	cmdType := detectCommandType(remainingArgs)
 
-	// 根据命令类型处理
+	// handle based on command type
 	switch cmdType {
 	case CommandSCP:
 		config, scpArgs := parseSCPArgs(remainingArgs)
@@ -87,7 +83,7 @@ func main() {
 		config.StrictHostKey = *strictHostKey
 		err = runSCP(config, scpArgs)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "SCP执行失败: %v\n", err)
+			fmt.Fprintf(os.Stderr, "SCP failed: %v\n", err)
 			os.Exit(1)
 		}
 		return
@@ -112,16 +108,16 @@ func main() {
 		config.StrictHostKey = *strictHostKey
 		err = runRsync(config, rsyncArgs)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Rsync执行失败: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Rsync failed: %v\n", err)
 			os.Exit(1)
 		}
 		return
 	}
 
-	// SSH 命令处理
+	// SSH command handling
 	if config == nil {
 		if len(remainingArgs) > 0 && (pass != "" || *keyPath != "") {
-			// sshpass风格: -p password 或 -i keyfile ssh user@host [command]
+			// sshpass style: -p password or -i keyfile ssh user@host [command]
 			config, cmdToRun = parseSSHArgs(remainingArgs)
 			if pass != "" {
 				config.Password = pass
@@ -140,7 +136,7 @@ func main() {
 			}
 			config.StrictHostKey = *strictHostKey
 		} else if *host != "" && (pass != "" || *keyPath != "") {
-			// 从命令行参数读取（包括文件传输模式）
+			// read from command line arguments (including file transfer mode)
 			config = &Config{
 				Host:          *host,
 				User:          *user,
@@ -155,50 +151,50 @@ func main() {
 		}
 	}
 
-	// 验证配置
+	// validate config
 	if config.Host == "" {
-		fmt.Fprintf(os.Stderr, "错误: 未指定主机地址\n")
+		fmt.Fprintf(os.Stderr, "Error: host address not specified\n")
 		os.Exit(1)
 	}
 	if config.Password == "" && config.KeyPath == "" {
-		fmt.Fprintf(os.Stderr, "错误: 未提供认证方式（需要密码或私钥）\n")
+		fmt.Fprintf(os.Stderr, "Error: no authentication method provided (password or key required)\n")
 		os.Exit(1)
 	}
 
-	// 建立SSH连接
+	// establish SSH connection
 	client, err := SSHClient(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "SSH连接失败: %v\n", err)
+		fmt.Fprintf(os.Stderr, "SSH connection failed: %v\n", err)
 		os.Exit(1)
 	}
 	defer client.Close()
 
-	// 文件传输
+	// file transfer
 	if *localPath != "" && *remotePath != "" {
 		if *download {
-			fmt.Printf("正在下载 %s -> %s...\n", *remotePath, *localPath)
+			fmt.Printf("Downloading %s -> %s...\n", *remotePath, *localPath)
 			err = downloadFile(client, *remotePath, *localPath)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "下载失败: %v\n", err)
+				fmt.Fprintf(os.Stderr, "Download failed: %v\n", err)
 				os.Exit(1)
 			}
-			fmt.Println("下载成功!")
+			fmt.Println("Download successful!")
 		} else {
-			fmt.Printf("正在上传 %s -> %s...\n", *localPath, *remotePath)
+			fmt.Printf("Uploading %s -> %s...\n", *localPath, *remotePath)
 			err = uploadFile(client, *localPath, *remotePath)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "上传失败: %v\n", err)
+				fmt.Fprintf(os.Stderr, "Upload failed: %v\n", err)
 				os.Exit(1)
 			}
-			fmt.Println("上传成功!")
+			fmt.Println("Upload successful!")
 		}
 		return
 	} else if *localPath != "" || *remotePath != "" {
-		fmt.Fprintf(os.Stderr, "错误: 文件传输需要同时指定 -local 和 -remote 参数\n")
+		fmt.Fprintf(os.Stderr, "Error: file transfer requires both -local and -remote arguments\n")
 		os.Exit(1)
 	}
 
-	// 执行命令
+	// execute command
 	cmd := *command
 	if cmd == "" {
 		cmd = cmdToRun
@@ -213,7 +209,7 @@ func main() {
 	if err != nil {
 		if !strings.Contains(err.Error(), "closed network connection") &&
 			!strings.Contains(err.Error(), "use of closed network connection") {
-			fmt.Fprintf(os.Stderr, "错误: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		}
 	}
 }

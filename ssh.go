@@ -9,46 +9,46 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-// SSHClient 创建SSH客户端连接
+// SSHClient creates an SSH client connection
 func SSHClient(config *Config) (*ssh.Client, error) {
 	var authMethods []ssh.AuthMethod
 
-	// 优先使用私钥认证
+	// use private key authentication first
 	if config.KeyPath != "" {
 		key, err := os.ReadFile(config.KeyPath)
 		if err != nil {
-			return nil, fmt.Errorf("读取私钥失败: %w", err)
+			return nil, fmt.Errorf("failed to read private key: %w", err)
 		}
 
 		signer, err := ssh.ParsePrivateKey(key)
 		if err != nil {
-			return nil, fmt.Errorf("解析私钥失败: %w", err)
+			return nil, fmt.Errorf("failed to parse private key: %w", err)
 		}
 
 		authMethods = append(authMethods, ssh.PublicKeys(signer))
 	}
 
-	// 如果有密码，添加密码认证（作为备选或主要方式）
+	// add password authentication if available (as fallback or primary)
 	if config.Password != "" {
 		authMethods = append(authMethods, ssh.Password(config.Password))
 	}
 
 	if len(authMethods) == 0 {
-		return nil, fmt.Errorf("未提供认证方式（密码或私钥）")
+		return nil, fmt.Errorf("no authentication method provided (password or key required)")
 	}
 
-	// 设置主机密钥验证回调
+	// set host key verification callback
 	var hostKeyCallback ssh.HostKeyCallback
 	if config.StrictHostKey {
-		// 使用 known_hosts 文件验证
+		// use known_hosts file for verification
 		knownHostsPath := getKnownHostsPath()
 		callback, err := knownhosts.New(knownHostsPath)
 		if err != nil {
-			return nil, fmt.Errorf("无法读取 known_hosts 文件 (%s): %w\n提示: 请先手动连接一次服务器以添加主机密钥", knownHostsPath, err)
+			return nil, fmt.Errorf("failed to read known_hosts file (%s): %w\nhint: connect to the server manually first to add the host key", knownHostsPath, err)
 		}
 		hostKeyCallback = callback
 	} else {
-		// 忽略主机密钥验证（默认）
+		// ignore host key verification (default)
 		hostKeyCallback = ssh.InsecureIgnoreHostKey()
 	}
 
@@ -61,20 +61,20 @@ func SSHClient(config *Config) (*ssh.Client, error) {
 	address := fmt.Sprintf("%s:%s", config.Host, config.Port)
 	client, err := ssh.Dial("tcp", address, sshConfig)
 	if err != nil {
-		return nil, fmt.Errorf("连接失败: %w", err)
+		return nil, fmt.Errorf("connection failed: %w", err)
 	}
 
 	return client, nil
 }
 
-// getKnownHostsPath 获取 known_hosts 文件路径
+// getKnownHostsPath returns the known_hosts file path
 func getKnownHostsPath() string {
-	// 优先使用环境变量
+	// use environment variable if set
 	if path := os.Getenv("SSH_KNOWN_HOSTS"); path != "" {
 		return path
 	}
 
-	// Windows 默认路径: %USERPROFILE%\.ssh\known_hosts
+	// Windows default path: %USERPROFILE%\.ssh\known_hosts
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		homeDir = os.Getenv("USERPROFILE")
@@ -82,44 +82,44 @@ func getKnownHostsPath() string {
 	return filepath.Join(homeDir, ".ssh", "known_hosts")
 }
 
-// runShell 启动交互式Shell
+// runShell starts an interactive shell
 func runShell(client *ssh.Client) error {
 	session, err := client.NewSession()
 	if err != nil {
-		return fmt.Errorf("创建会话失败: %w", err)
+		return fmt.Errorf("failed to create session: %w", err)
 	}
 	defer session.Close()
 
-	// 设置终端模式
+	// set terminal modes
 	modes := ssh.TerminalModes{
 		ssh.ECHO:          1,
 		ssh.TTY_OP_ISPEED: 14400,
 		ssh.TTY_OP_OSPEED: 14400,
 	}
 
-	// 请求伪终端
+	// request pseudo-terminal
 	if err := session.RequestPty("xterm", 40, 80, modes); err != nil {
-		return fmt.Errorf("请求终端失败: %w", err)
+		return fmt.Errorf("failed to request terminal: %w", err)
 	}
 
-	// 设置标准输入输出
+	// set standard I/O
 	session.Stdin = os.Stdin
 	session.Stdout = os.Stdout
 	session.Stderr = os.Stderr
 
-	// 启动远程shell
+	// start remote shell
 	if err := session.Shell(); err != nil {
-		return fmt.Errorf("启动Shell失败: %w", err)
+		return fmt.Errorf("failed to start shell: %w", err)
 	}
 
 	return session.Wait()
 }
 
-// executeCommand 执行单个命令
+// executeCommand executes a single command
 func executeCommand(client *ssh.Client, command string) error {
 	session, err := client.NewSession()
 	if err != nil {
-		return fmt.Errorf("创建会话失败: %w", err)
+		return fmt.Errorf("failed to create session: %w", err)
 	}
 	defer session.Close()
 
