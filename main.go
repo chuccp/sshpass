@@ -64,24 +64,32 @@ func main() {
 	// handle based on command type
 	switch cmdType {
 	case CommandSCP:
-		config, scpArgs := parseSCPArgs(remainingArgs)
+		cfgConfig, scpArgs := parseSCPArgs(remainingArgs)
+		if config != nil {
+			if config.Password != "" {
+				cfgConfig.Password = config.Password
+			}
+			if config.KeyPath != "" {
+				cfgConfig.KeyPath = config.KeyPath
+			}
+		}
 		if pass != "" {
-			config.Password = pass
+			cfgConfig.Password = pass
 		}
 		if *keyPath != "" {
-			config.KeyPath = *keyPath
+			cfgConfig.KeyPath = *keyPath
 		}
 		if *host != "" {
-			config.Host = *host
+			cfgConfig.Host = *host
 		}
 		if *user != "" {
-			config.User = *user
+			cfgConfig.User = *user
 		}
 		if *port != "" && *port != "22" {
-			config.Port = *port
+			cfgConfig.Port = *port
 		}
-		config.StrictHostKey = *strictHostKey
-		err = runSCP(config, scpArgs)
+		cfgConfig.StrictHostKey = *strictHostKey
+		err = runSCP(cfgConfig, scpArgs)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "SCP failed: %v\n", err)
 			os.Exit(1)
@@ -89,24 +97,32 @@ func main() {
 		return
 
 	case CommandRsync:
-		config, rsyncArgs := parseRsyncArgs(remainingArgs)
+		cfgConfig, rsyncArgs := parseRsyncArgs(remainingArgs)
+		if config != nil {
+			if config.Password != "" {
+				cfgConfig.Password = config.Password
+			}
+			if config.KeyPath != "" {
+				cfgConfig.KeyPath = config.KeyPath
+			}
+		}
 		if pass != "" {
-			config.Password = pass
+			cfgConfig.Password = pass
 		}
 		if *keyPath != "" {
-			config.KeyPath = *keyPath
+			cfgConfig.KeyPath = *keyPath
 		}
 		if *host != "" {
-			config.Host = *host
+			cfgConfig.Host = *host
 		}
 		if *user != "" {
-			config.User = *user
+			cfgConfig.User = *user
 		}
 		if *port != "" && *port != "22" {
-			config.Port = *port
+			cfgConfig.Port = *port
 		}
-		config.StrictHostKey = *strictHostKey
-		err = runRsync(config, rsyncArgs)
+		cfgConfig.StrictHostKey = *strictHostKey
+		err = runRsync(cfgConfig, rsyncArgs)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Rsync failed: %v\n", err)
 			os.Exit(1)
