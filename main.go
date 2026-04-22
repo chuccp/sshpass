@@ -89,7 +89,8 @@ func main() {
 			cfgConfig.Port = *port
 		}
 		cfgConfig.StrictHostKey = *strictHostKey
-		err = runSCP(cfgConfig, scpArgs)
+		config = cfgConfig
+		err = runSCP(config, scpArgs)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "SCP failed: %v\n", err)
 			os.Exit(1)
@@ -122,7 +123,8 @@ func main() {
 			cfgConfig.Port = *port
 		}
 		cfgConfig.StrictHostKey = *strictHostKey
-		err = runRsync(cfgConfig, rsyncArgs)
+		config = cfgConfig
+		err = runRsync(config, rsyncArgs)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Rsync failed: %v\n", err)
 			os.Exit(1)
@@ -135,20 +137,23 @@ func main() {
 		if len(remainingArgs) > 0 && (pass != "" || *keyPath != "") {
 			// sshpass style: -p password or -i keyfile ssh user@host [command]
 			config, cmdToRun = parseSSHArgs(remainingArgs)
+			// if -h flag was used and no user@host found in args, use remaining args as command
+			if config.Host == "" && *host != "" {
+				config.Host = *host
+				config.User = *user
+				if *port != "" && *port != "22" {
+					config.Port = *port
+				}
+				cmdToRun = strings.Join(remainingArgs, " ")
+			}
 			if pass != "" {
 				config.Password = pass
 			}
 			if *keyPath != "" {
 				config.KeyPath = *keyPath
 			}
-			if *host != "" {
-				config.Host = *host
-			}
 			if *user != "" {
 				config.User = *user
-			}
-			if *port != "" && *port != "22" {
-				config.Port = *port
 			}
 			config.StrictHostKey = *strictHostKey
 		} else if *host != "" && (pass != "" || *keyPath != "") {
