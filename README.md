@@ -10,6 +10,17 @@
 
 A Windows implementation of sshpass, providing similar functionality to the Linux sshpass tool.
 
+## Features
+
+- SSH login with password or private key authentication
+- Execute remote commands or open interactive shell
+- File upload/download via SFTP (with progress bar)
+- SCP-style and Rsync-style file transfer
+- Config file support for managing multiple servers
+- Dynamic terminal resizing in interactive shell mode
+- Git Bash path conversion detection and auto-fix
+- IPv6 address support
+
 ## Download
 
 Download the latest release from [GitHub Releases](https://github.com/chuccp/win-sshpass/releases):
@@ -75,6 +86,7 @@ win-sshpass -h <host> -p <password> -d -remote <remote_path> -local <local_path>
 
 ```bash
 win-sshpass -p <password> scp <local_file> user@host:<remote_path>
+win-sshpass -p <password> scp -P <port> <local_file> user@host:<remote_path>
 win-sshpass -p <password> scp user@host:<remote_file> <local_path>
 ```
 
@@ -99,6 +111,7 @@ win-sshpass -p <password> rsync -avz <local_path> user@host:<remote_path>
 | `-local` | Local path (upload/download) | `-local ./file.txt` |
 | `-remote` | Remote path (upload/download) | `-remote /tmp/file.txt` |
 | `-d` | Download mode | `-d` |
+| `-k` | Enable strict host key verification | `-k` |
 | `-v` | Show version | `-v` |
 
 ## Configuration File Format
