@@ -26,8 +26,10 @@ A Windows implementation of sshpass, providing similar functionality to the Linu
 Download the latest release from [GitHub Releases](https://github.com/chuccp/win-sshpass/releases):
 
 1. Go to [Releases](https://github.com/chuccp/win-sshpass/releases) page
-2. Download `win-sshpass-*.zip` from the latest release
-3. Extract `win-sshpass.exe` to your preferred location
+2. Download `win-sshpass.exe` from the latest release
+3. That's it! No installation, no dependencies — just a single executable
+
+> **Zero dependencies**: `win-sshpass.exe` is a standalone binary. No need to install Python, .NET, or any runtime. Download it, put it in your PATH, and you're ready to go.
 
 ## Quick Start
 

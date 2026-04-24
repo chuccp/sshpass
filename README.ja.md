@@ -20,8 +20,10 @@ Windows 版 sshpass ツール。Linux の sshpass と同様の機能を提供し
 [GitHub Releases](https://github.com/chuccp/win-sshpass/releases) から最新版をダウンロード：
 
 1. [Releases](https://github.com/chuccp/win-sshpass/releases) ページを開く
-2. 最新版の `win-sshpass-*.zip` をダウンロード
-3. `win-sshpass.exe` を任意の場所に展開
+2. 最新版の `win-sshpass.exe` をダウンロード
+3. すぐに使えます！インストール不要、依存関係なし、単一ファイルで動作
+
+> **依存関係ゼロ**：`win-sshpass.exe` はスタンドアロンの実行ファイルです。Python、.NET、その他のランタイムのインストールは不要です。ダウンロードして PATH に配置すればすぐに使用できます。
 
 ## クイックスタート
 
