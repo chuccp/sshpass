@@ -29,7 +29,7 @@ Download the latest release from [GitHub Releases](https://github.com/chuccp/win
 2. Download `win-sshpass.exe` from the latest release
 3. That's it! No installation, no dependencies — just a single executable
 
-> **Zero dependencies**: `win-sshpass.exe` is a standalone binary. No need to install Python, .NET, or any runtime. Download it, put it in your PATH, and you're ready to go.
+> **Zero dependencies**: `win-sshpass.exe` is a standalone binary. No need to install OpenSSH, Python, .NET, or any other runtime. Download it, put it in your PATH, and you're ready to go.
 
 ## Quick Start
 

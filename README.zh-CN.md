@@ -23,7 +23,7 @@ Windows 版 sshpass 工具，实现类似 Linux sshpass 的功能。
 2. 下载最新版本的 `win-sshpass.exe`
 3. 开箱即用！无需安装，无需任何依赖，单文件即可使用
 
-> **零依赖**：`win-sshpass.exe` 是一个独立的可执行文件，无需安装 Python、.NET 或任何运行时环境。下载后放入 PATH 目录即可直接使用。
+> **零依赖**：`win-sshpass.exe` 是一个独立的可执行文件，无需安装 OpenSSH、Python、.NET 或任何运行时环境。下载后放入 PATH 目录即可直接使用。
 
 ## 快速开始
 
