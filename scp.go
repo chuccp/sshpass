@@ -51,6 +51,9 @@ func runSCP(config *Config, args []string) error {
 		return fmt.Errorf("failed to parse scp arguments: %v", args)
 	}
 
+	// clean remote path (handle Git Bash // prefix and path conversion)
+	remotePath = cleanRemotePath(remotePath)
+
 	if isUpload {
 		return uploadFile(client, localFile, remotePath)
 	}
@@ -92,9 +95,9 @@ func runRsync(config *Config, args []string) error {
 	if strings.Contains(src, "@") {
 		// remote to local (download)
 		_, _, remotePath := parseUserHostPath(src)
-		return downloadFile(client, remotePath, dst)
+		return downloadFile(client, cleanRemotePath(remotePath), dst)
 	}
 	// local to remote (upload)
 	_, _, remotePath := parseUserHostPath(dst)
-	return uploadFile(client, src, remotePath)
+	return uploadFile(client, src, cleanRemotePath(remotePath))
 }

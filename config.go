@@ -17,6 +17,81 @@ type Config struct {
 	StrictHostKey bool   // whether to verify host key
 }
 
+// newDefaultConfig creates a Config with default values
+func newDefaultConfig() *Config {
+	return &Config{
+		User: "root",
+		Port: "22",
+	}
+}
+
+// applyUserDefault sets the user to "root" if empty
+func applyUserDefault(cfg *Config) {
+	if cfg.User == "" {
+		cfg.User = "root"
+	}
+}
+
+// setUserHostFromArg parses user@host:path format and sets config fields
+func (c *Config) setUserHostFromArg(arg string) {
+	user, host, _ := parseUserHostPath(arg)
+	if user != "" && host != "" {
+		c.User = user
+		c.Host = host
+	}
+}
+
+// validate checks that the  config has required fields
+func (c *Config) validate() error {
+	if c.Host == "" {
+		return fmt.Errorf("host address not specified")
+	}
+	if c.Password == "" && c.KeyPath == "" {
+		return fmt.Errorf("no authentication method provided (password or key required)")
+	}
+	return nil
+}
+
+// mergeConfig merges non-empty fields from src into dst,
+// then applies command-line overrides and user default
+func mergeConfig(dst, src *Config, pass, keyPath, host, user, port string) {
+	// inherit from source (config file)
+	if src != nil {
+		if src.Password != "" {
+			dst.Password = src.Password
+		}
+		if src.KeyPath != "" {
+			dst.KeyPath = src.KeyPath
+		}
+		if src.User != "" {
+			dst.User = src.User
+		}
+		if src.Host != "" {
+			dst.Host = src.Host
+		}
+		if src.Port != "" {
+			dst.Port = src.Port
+		}
+	}
+	// command-line overrides
+	if pass != "" {
+		dst.Password = pass
+	}
+	if keyPath != "" {
+		dst.KeyPath = keyPath
+	}
+	if host != "" {
+		dst.Host = host
+	}
+	if user != "" {
+		dst.User = user
+	}
+	if port != "" && port != "22" {
+		dst.Port = port
+	}
+	applyUserDefault(dst)
+}
+
 // parseConfigFile parses a config file (format: key: value)
 func parseConfigFile(filename string) (*Config, error) {
 	file, err := os.Open(filename)
@@ -25,10 +100,7 @@ func parseConfigFile(filename string) (*Config, error) {
 	}
 	defer file.Close()
 
-	config := &Config{
-		Port: "22",
-		User: "root",
-	}
+	config := newDefaultConfig()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {

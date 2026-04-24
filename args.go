@@ -22,46 +22,9 @@ type ParsedCommand struct {
 	SCPArgs []string // scp arguments
 }
 
-// parseUserHostPath parses user@host:path format, supporting IPv6
-// returns user, host, path
-func parseUserHostPath(arg string) (user, host, remotePath string) {
-	atIdx := strings.Index(arg, "@")
-	if atIdx <= 0 {
-		return "", "", ""
-	}
-	user = arg[:atIdx]
-	remainder := arg[atIdx+1:]
-
-	// check if IPv6 address (starts with [)
-	if strings.HasPrefix(remainder, "[") {
-		// IPv6 format: [::1]:path or [2001:db8::1]:path
-		closeBracket := strings.Index(remainder, "]")
-		if closeBracket > 0 {
-			host = remainder[:closeBracket+1] // including square brackets
-			// check if there is a path after ]:
-			if closeBracket+1 < len(remainder) && remainder[closeBracket+1] == ':' {
-				remotePath = remainder[closeBracket+2:]
-			}
-		}
-	} else {
-		// IPv4 or hostname: host:path
-		colonIdx := strings.Index(remainder, ":")
-		if colonIdx > 0 {
-			host = remainder[:colonIdx]
-			remotePath = remainder[colonIdx+1:]
-		} else {
-			host = remainder
-		}
-	}
-	return user, host, remotePath
-}
-
 // parseSSHArgs parses ssh-style arguments (user@host or -p port user@host)
 func parseSSHArgs(args []string) (*Config, string) {
-	config := &Config{
-		User: "root",
-		Port: "22",
-	}
+	config := newDefaultConfig()
 	var command string
 
 	i := 0
@@ -99,7 +62,7 @@ func parseSSHArgs(args []string) (*Config, string) {
 		}
 		// remaining args as command
 		if config.Host != "" {
-			command = strings.Join(args[i:], " ")
+			command = joinArgs(args[i:])
 			break
 		}
 		i++
@@ -110,10 +73,7 @@ func parseSSHArgs(args []string) (*Config, string) {
 
 // parseSCPArgs parses scp command arguments
 func parseSCPArgs(args []string) (*Config, []string) {
-	config := &Config{
-		User: "root",
-		Port: "22",
-	}
+	config := newDefaultConfig()
 	var scpArgs []string
 
 	i := 0
@@ -126,7 +86,6 @@ func parseSCPArgs(args []string) (*Config, []string) {
 		if arg == "-P" && i+1 < len(args) {
 			// scp uses uppercase -P for port
 			config.Port = args[i+1]
-			scpArgs = append(scpArgs, "-P", args[i+1])
 			i += 2
 			continue
 		}
@@ -140,12 +99,7 @@ func parseSCPArgs(args []string) (*Config, []string) {
 			continue
 		}
 		if strings.Contains(arg, "@") && strings.Contains(arg, ":") {
-			// user@host:path format (supports IPv6)
-			user, host, _ := parseUserHostPath(arg)
-			if user != "" && host != "" {
-				config.User = user
-				config.Host = host
-			}
+			config.setUserHostFromArg(arg)
 		}
 		scpArgs = append(scpArgs, arg)
 		i++
@@ -156,10 +110,7 @@ func parseSCPArgs(args []string) (*Config, []string) {
 
 // parseRsyncArgs parses rsync command arguments
 func parseRsyncArgs(args []string) (*Config, []string) {
-	config := &Config{
-		User: "root",
-		Port: "22",
-	}
+	config := newDefaultConfig()
 	var rsyncArgs []string
 
 	i := 0
@@ -180,18 +131,16 @@ func parseRsyncArgs(args []string) (*Config, []string) {
 			continue
 		}
 		if strings.HasPrefix(arg, "-p") && len(arg) > 2 {
-			// -p22 format port
-			config.Port = arg[2:]
-			i++
-			continue
+			// -p22 format port (only match if followed by digits)
+			portPart := arg[2:]
+			if isAllDigits(portPart) {
+				config.Port = portPart
+				i++
+				continue
+			}
 		}
 		if strings.Contains(arg, "@") && strings.Contains(arg, ":") {
-			// user@host:path format (supports IPv6)
-			user, host, _ := parseUserHostPath(arg)
-			if user != "" && host != "" {
-				config.User = user
-				config.Host = host
-			}
+			config.setUserHostFromArg(arg)
 		}
 		rsyncArgs = append(rsyncArgs, arg)
 		i++

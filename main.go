@@ -4,14 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 )
 
 func main() {
 	// command line arguments
 	configFile := flag.String("f", "", "password file or config file path")
 	host := flag.String("h", "", "host address")
-	user := flag.String("u", "root", "username")
+	user := flag.String("u", "", "username (default: root)")
 	password := flag.String("p", "", "password")
 	port := flag.String("P", "22", "port")
 	keyPath := flag.String("i", "", "private key file path")
@@ -46,8 +45,7 @@ func main() {
 			// not a config file, try as single-line password file
 			pass, err = readPasswordFile(*configFile)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
+				fatalError("Error: %v", err)
 			}
 		} else {
 			// config file parsed successfully, set StrictHostKey from command line
@@ -65,69 +63,21 @@ func main() {
 	switch cmdType {
 	case CommandSCP:
 		cfgConfig, scpArgs := parseSCPArgs(remainingArgs)
-		if config != nil {
-			if config.Password != "" {
-				cfgConfig.Password = config.Password
-			}
-			if config.KeyPath != "" {
-				cfgConfig.KeyPath = config.KeyPath
-			}
-		}
-		if pass != "" {
-			cfgConfig.Password = pass
-		}
-		if *keyPath != "" {
-			cfgConfig.KeyPath = *keyPath
-		}
-		if *host != "" {
-			cfgConfig.Host = *host
-		}
-		if *user != "" {
-			cfgConfig.User = *user
-		}
-		if *port != "" && *port != "22" {
-			cfgConfig.Port = *port
-		}
+		mergeConfig(cfgConfig, config, pass, *keyPath, *host, *user, *port)
 		cfgConfig.StrictHostKey = *strictHostKey
 		config = cfgConfig
-		err = runSCP(config, scpArgs)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "SCP failed: %v\n", err)
-			os.Exit(1)
+		if err := runSCP(config, scpArgs); err != nil {
+			fatalError("SCP failed: %v", err)
 		}
 		return
 
 	case CommandRsync:
 		cfgConfig, rsyncArgs := parseRsyncArgs(remainingArgs)
-		if config != nil {
-			if config.Password != "" {
-				cfgConfig.Password = config.Password
-			}
-			if config.KeyPath != "" {
-				cfgConfig.KeyPath = config.KeyPath
-			}
-		}
-		if pass != "" {
-			cfgConfig.Password = pass
-		}
-		if *keyPath != "" {
-			cfgConfig.KeyPath = *keyPath
-		}
-		if *host != "" {
-			cfgConfig.Host = *host
-		}
-		if *user != "" {
-			cfgConfig.User = *user
-		}
-		if *port != "" && *port != "22" {
-			cfgConfig.Port = *port
-		}
+		mergeConfig(cfgConfig, config, pass, *keyPath, *host, *user, *port)
 		cfgConfig.StrictHostKey = *strictHostKey
 		config = cfgConfig
-		err = runRsync(config, rsyncArgs)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Rsync failed: %v\n", err)
-			os.Exit(1)
+		if err := runRsync(config, rsyncArgs); err != nil {
+			fatalError("Rsync failed: %v", err)
 		}
 		return
 	}
@@ -140,11 +90,13 @@ func main() {
 			// if -h flag was used and no user@host found in args, use remaining args as command
 			if config.Host == "" && *host != "" {
 				config.Host = *host
-				config.User = *user
+				if *user != "" {
+					config.User = *user
+				}
 				if *port != "" && *port != "22" {
 					config.Port = *port
 				}
-				cmdToRun = strings.Join(remainingArgs, " ")
+				cmdToRun = joinArgs(remainingArgs)
 			}
 			if pass != "" {
 				config.Password = pass
@@ -158,13 +110,14 @@ func main() {
 			config.StrictHostKey = *strictHostKey
 		} else if *host != "" && (pass != "" || *keyPath != "") {
 			// read from command line arguments (including file transfer mode)
-			config = &Config{
-				Host:          *host,
-				User:          *user,
-				Password:      pass,
-				Port:          *port,
-				KeyPath:       *keyPath,
-				StrictHostKey: *strictHostKey,
+			config = newDefaultConfig()
+			config.Host = *host
+			config.Password = pass
+			config.Port = *port
+			config.KeyPath = *keyPath
+			config.StrictHostKey = *strictHostKey
+			if *user != "" {
+				config.User = *user
 			}
 		} else {
 			printUsage()
@@ -172,47 +125,41 @@ func main() {
 		}
 	}
 
+	// apply default user if still empty
+	applyUserDefault(config)
+
 	// validate config
-	if config.Host == "" {
-		fmt.Fprintf(os.Stderr, "Error: host address not specified\n")
-		os.Exit(1)
-	}
-	if config.Password == "" && config.KeyPath == "" {
-		fmt.Fprintf(os.Stderr, "Error: no authentication method provided (password or key required)\n")
-		os.Exit(1)
+	if err := config.validate(); err != nil {
+		fatalError("Error: %v", err)
 	}
 
 	// establish SSH connection
 	client, err := SSHClient(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "SSH connection failed: %v\n", err)
-		os.Exit(1)
+		fatalError("SSH connection failed: %v", err)
 	}
 	defer client.Close()
 
 	// file transfer
 	if *localPath != "" && *remotePath != "" {
+		// fix Git Bash path conversion for remote paths
+		rPath := cleanRemotePath(*remotePath)
 		if *download {
 			fmt.Printf("Downloading %s -> %s...\n", *remotePath, *localPath)
-			err = downloadFile(client, *remotePath, *localPath)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Download failed: %v\n", err)
-				os.Exit(1)
+			if err := downloadFile(client, rPath, *localPath); err != nil {
+				fatalError("Download failed: %v", err)
 			}
 			fmt.Println("Download successful!")
 		} else {
 			fmt.Printf("Uploading %s -> %s...\n", *localPath, *remotePath)
-			err = uploadFile(client, *localPath, *remotePath)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Upload failed: %v\n", err)
-				os.Exit(1)
+			if err := uploadFile(client, *localPath, rPath); err != nil {
+				fatalError("Upload failed: %v", err)
 			}
 			fmt.Println("Upload successful!")
 		}
 		return
 	} else if *localPath != "" || *remotePath != "" {
-		fmt.Fprintf(os.Stderr, "Error: file transfer requires both -local and -remote arguments\n")
-		os.Exit(1)
+		fatalError("Error: file transfer requires both -local and -remote arguments")
 	}
 
 	// execute command
@@ -227,10 +174,7 @@ func main() {
 		err = runShell(client)
 	}
 
-	if err != nil {
-		if !strings.Contains(err.Error(), "closed network connection") &&
-			!strings.Contains(err.Error(), "use of closed network connection") {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		}
+	if err != nil && !isClosedConnError(err) {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 	}
 }

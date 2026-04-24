@@ -34,3 +34,6 @@ go.work.sum
 /.idea
 *.config
 *.log
+/test_dir
+/dltest
+*.txt

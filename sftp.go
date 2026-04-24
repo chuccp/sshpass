@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path" // Unix-style paths (always use /)
 	"path/filepath"
 	"strings"
 
@@ -38,7 +37,7 @@ func uploadSingleFile(sftpClient *sftp.Client, localPath, remotePath string) err
 	// check if remote path is a directory
 	remoteFileInfo, err := sftpClient.Stat(remotePath)
 	if err == nil && remoteFileInfo.IsDir() {
-		remotePath = path.Join(remotePath, filepath.Base(localPath))
+		remotePath = joinRemotePath(remotePath, localBaseName(localPath))
 	}
 
 	localFile, err := os.Open(localPath)
@@ -55,7 +54,7 @@ func uploadSingleFile(sftpClient *sftp.Client, localPath, remotePath string) err
 	fileSize := fileInfo.Size()
 
 	// ensure remote directory exists
-	remoteDir := path.Dir(remotePath)
+	remoteDir := remoteDirName(remotePath)
 	if err := sftpClient.MkdirAll(remoteDir); err != nil {
 		return fmt.Errorf("failed to create remote directory: %w", err)
 	}
@@ -69,7 +68,7 @@ func uploadSingleFile(sftpClient *sftp.Client, localPath, remotePath string) err
 	// create progress bar
 	bar := progressbar.NewOptions64(
 		fileSize,
-		progressbar.OptionSetDescription(fmt.Sprintf("Uploading %s", filepath.Base(localPath))),
+		progressbar.OptionSetDescription(fmt.Sprintf("Uploading %s", localBaseName(localPath))),
 		progressbar.OptionSetWriter(os.Stderr),
 		progressbar.OptionShowBytes(true),
 		progressbar.OptionSetWidth(40),
@@ -93,10 +92,10 @@ func uploadSingleFile(sftpClient *sftp.Client, localPath, remotePath string) err
 // uploadDirectory uploads an entire directory
 func uploadDirectory(sftpClient *sftp.Client, localPath, remotePath string) error {
 	// get local directory base name
-	localBase := filepath.Base(localPath)
+	localBase := localBaseName(localPath)
 
-	// ensure remote directory exists (use path.Join for Unix-style paths)
-	remoteDir := path.Join(remotePath, localBase)
+	// ensure remote directory exists
+	remoteDir := joinRemotePath(remotePath, localBase)
 	if err := sftpClient.MkdirAll(remoteDir); err != nil {
 		return fmt.Errorf("failed to create remote directory: %w", err)
 	}
@@ -114,10 +113,10 @@ func uploadDirectory(sftpClient *sftp.Client, localPath, remotePath string) erro
 		}
 
 		// convert Windows relative path to Unix style
-		relPath = filepath.ToSlash(relPath)
+		relPath = toSlash(relPath)
 
-		// remote full path (use path.Join for Unix-style paths)
-		remoteFullPath := path.Join(remoteDir, relPath)
+		// remote full path
+		remoteFullPath := joinRemotePath(remoteDir, relPath)
 
 		if info.IsDir() {
 			// create remote directory
@@ -154,11 +153,11 @@ func downloadSingleFile(sftpClient *sftp.Client, remotePath, localPath string) e
 	// check if local path is a directory
 	localFileInfo, err := os.Stat(localPath)
 	if err == nil && localFileInfo.IsDir() {
-		localPath = filepath.Join(localPath, path.Base(remotePath))
+		localPath = joinLocalPath(localPath, remoteBaseName(remotePath))
 	}
 
 	// ensure local directory exists
-	localDir := filepath.Dir(localPath)
+	localDir := localDirName(localPath)
 	if err := os.MkdirAll(localDir, 0755); err != nil {
 		return fmt.Errorf("failed to create local directory: %w", err)
 	}
@@ -185,7 +184,7 @@ func downloadSingleFile(sftpClient *sftp.Client, remotePath, localPath string) e
 	// create progress bar
 	bar := progressbar.NewOptions64(
 		fileSize,
-		progressbar.OptionSetDescription(fmt.Sprintf("Downloading %s", path.Base(remotePath))),
+		progressbar.OptionSetDescription(fmt.Sprintf("Downloading %s", remoteBaseName(remotePath))),
 		progressbar.OptionSetWriter(os.Stderr),
 		progressbar.OptionShowBytes(true),
 		progressbar.OptionSetWidth(40),
@@ -208,11 +207,11 @@ func downloadSingleFile(sftpClient *sftp.Client, remotePath, localPath string) e
 
 // downloadDirectory downloads an entire directory
 func downloadDirectory(sftpClient *sftp.Client, remotePath, localPath string) error {
-	// get remote directory name (trim trailing / to avoid path.Base returning empty string)
-	remoteBase := path.Base(strings.TrimSuffix(remotePath, "/"))
+	// get remote directory name (trim trailing / to avoid remoteBaseName returning empty string)
+	remoteBase := remoteBaseName(strings.TrimSuffix(remotePath, "/"))
 
 	// ensure local directory exists
-	localDir := filepath.Join(localPath, remoteBase)
+	localDir := joinLocalPath(localPath, remoteBase)
 	if err := os.MkdirAll(localDir, 0755); err != nil {
 		return fmt.Errorf("failed to create local directory: %w", err)
 	}
@@ -236,7 +235,7 @@ func downloadDirectory(sftpClient *sftp.Client, remotePath, localPath string) er
 		}
 
 		// local full path
-		localFullPath := filepath.Join(localDir, relPath)
+		localFullPath := joinLocalPath(localDir, relPath)
 
 		info := walker.Stat()
 		if info.IsDir() {

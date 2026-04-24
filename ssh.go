@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
+	"golang.org/x/term"
 )
 
 // SSHClient creates an SSH client connection
@@ -79,16 +79,39 @@ func getKnownHostsPath() string {
 	if err != nil {
 		homeDir = os.Getenv("USERPROFILE")
 	}
-	return filepath.Join(homeDir, ".ssh", "known_hosts")
+	return joinLocalPath(homeDir, ".ssh", "known_hosts")
 }
 
-// runShell starts an interactive shell
+// getTerminalSize gets the current terminal size using x/term
+func getTerminalSize() (int, int) {
+	w, h, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil || w == 0 || h == 0 {
+		return 80, 24
+	}
+	return w, h
+}
+
+// sendWindowChange sends a window-change request to the SSH session
+func sendWindowChange(session *ssh.Session) {
+	cols, rows := getTerminalSize()
+	session.SendRequest("window-change", false, ssh.Marshal(struct {
+		Columns uint32
+		Rows    uint32
+		Width   uint32
+		Height  uint32
+	}{uint32(cols), uint32(rows), 0, 0}))
+}
+
+// runShell starts an interactive shell with dynamic terminal resizing
 func runShell(client *ssh.Client) error {
 	session, err := client.NewSession()
 	if err != nil {
 		return fmt.Errorf("failed to create session: %w", err)
 	}
 	defer session.Close()
+
+	// get current terminal size
+	cols, rows := getTerminalSize()
 
 	// set terminal modes
 	modes := ssh.TerminalModes{
@@ -97,8 +120,8 @@ func runShell(client *ssh.Client) error {
 		ssh.TTY_OP_OSPEED: 14400,
 	}
 
-	// request pseudo-terminal
-	if err := session.RequestPty("xterm", 40, 80, modes); err != nil {
+	// request pseudo-terminal with actual size
+	if err := session.RequestPty("xterm", rows, cols, modes); err != nil {
 		return fmt.Errorf("failed to request terminal: %w", err)
 	}
 
@@ -106,6 +129,9 @@ func runShell(client *ssh.Client) error {
 	session.Stdin = os.Stdin
 	session.Stdout = os.Stdout
 	session.Stderr = os.Stderr
+
+	// watch for terminal resize events (platform-specific)
+	watchTerminalResize(session)
 
 	// start remote shell
 	if err := session.Shell(); err != nil {
