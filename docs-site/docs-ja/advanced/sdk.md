@@ -149,9 +149,7 @@ if err != nil {
     log.Fatal(err)
 }
 defer fwd.Close()
-
-// フォワーダーが停止するまでブロック
-fwd.Wait()
+// Forwarder は Close() が呼ばれるまでバックグラウンドで実行される
 ```
 
 #### RemoteForward

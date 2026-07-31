@@ -6,7 +6,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md)
 
-跨平台 sshpass 工具（Windows 和 Linux），實現類似 Linux sshpass 的功能。
+跨平台 sshpass 工具（Windows、Linux 和 macOS），實現類似 Linux sshpass 的功能。
 
 > 💡 **如果這個專案對你有幫助，歡迎點個 ⭐ Star！** 讓更多人發現這個工具。
 
@@ -87,6 +87,12 @@ win-sshpass -p 'password' ssh user@example.com 'whoami'
 # 私鑰登入執行命令
 win-sshpass -i ~/.ssh/id_ed25519 ssh user@example.com 'hostname'
 
+# SSH agent 認證（自動偵測，無需 -p/-i）
+win-sshpass ssh user@example.com 'whoami'
+
+# JSON 輸出模式（適用於 AI 代理與自動化）
+win-sshpass -json -p 'password' ssh user@example.com 'uptime'
+
 # 上傳檔案
 win-sshpass -h example.com -p 'password' -local file.txt -remote /tmp/file.txt
 
@@ -145,6 +151,12 @@ win-sshpass -p <密碼> ssh user@host
 
 # 私鑰認證
 win-sshpass -i <私鑰路徑> ssh [user@host] [命令]
+
+# SSH agent 認證（自動偵測，無需 -p/-i）
+win-sshpass ssh user@host 'whoami'
+
+# SSH agent 轉送（-A 參數）
+win-sshpass -A -i ~/.ssh/id_ed25519 ssh user@jumphost
 
 # 環境變數密碼
 SSHPASS=<密碼> win-sshpass -e ssh user@host
@@ -223,6 +235,10 @@ win-sshpass -p <密碼> rsync -avz user@host:<遠端路徑> <本地路徑>
 | `-retry` | 總連線嘗試次數（預設：3） | `-retry 5` |
 | `-resume` | 從斷點恢復中斷的檔案傳輸 | `-resume` |
 | `-proxy` | 代理 URL（socks5/socks4/http/https） | `-proxy socks5://127.0.0.1:1080` |
+| `-L` | 本機連接埠轉送（可重複使用） | `-L 8080:db.internal:3306` |
+| `-R` | 遠端連接埠轉送（可重複使用） | `-R 9090:localhost:8080` |
+| `-A` | 啟用 ssh-agent 轉送 | `-A` |
+| `-json` | JSON 格式輸出（適用於 AI/自動化） | `-json` |
 | `-algo` | 金鑰演算法（ed25519/rsa），預設 ed25519 | `-algo rsa` |
 | `-out` | 金鑰輸出路徑前綴，預設 id_ed25519 | `-out ~/.ssh/mykey` |
 | `-comment` | 金鑰註解 | `-comment "my-laptop"` |
@@ -337,6 +353,21 @@ win-sshpass keygen -out ~/.ssh/my_key -comment "my-work-laptop"
 
 # 13. 產生 RSA 金鑰對
 win-sshpass keygen -algo rsa -out ~/.ssh/my_rsa_key
+
+# 14. SSH agent 認證（無需密碼或金鑰）
+win-sshpass ssh user@host 'whoami'
+
+# 15. SSH agent 轉送到跳板機
+win-sshpass -A ssh user@jumphost
+
+# 16. JSON 輸出模式（適用於自動化）
+win-sshpass -json -p 'pass' ssh user@host 'uptime'
+
+# 17. 本機連接埠轉送（透過跳板機存取內部資料庫）
+win-sshpass -p 'pass' -L 3306:db.internal:3306 ssh user@jumphost
+
+# 18. 遠端連接埠轉送（暴露本機開發伺服器）
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
 ```
 
 ## 代理支援
@@ -368,6 +399,26 @@ win-sshpass -p 'pass' -proxy socks5://127.0.0.1:1080 scp ./app.jar user@host:/op
 # 設定檔中設定代理
 # proxy: socks5://user:pass@127.0.0.1:1080
 ```
+
+## 連接埠轉送
+
+透過 SSH 伺服器建立 TCP 隧道連線，支援本機轉送（`-L`）和遠端轉送（`-R`）：
+
+```bash
+# 本機轉送：透過跳板機存取 db.internal:3306 → localhost:8080
+win-sshpass -p 'pass' -L 8080:db.internal:3306 ssh user@jumphost
+
+# 多個本機轉送
+win-sshpass -p 'pass' -L 8080:db1.internal:3306 -L 8081:db2.internal:3306 ssh user@jumphost
+
+# 遠端轉送：將 localhost:8080 暴露在遠端伺服器的 9090 連接埠
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
+
+# 僅轉送模式（無命令，阻塞直到 Ctrl+C）
+win-sshpass -p 'pass' -L 8080:db.internal:3306 -L 6379:redis.internal:6379 ssh user@jumphost
+```
+
+> 連接埠轉送使用標準 OpenSSH 格式：`[繫結位址:]連接埠:主機:主機連接埠`。不支援與 SCP、Rsync 或檔案傳輸模式同時使用。
 
 ## Git Bash 注意事項
 

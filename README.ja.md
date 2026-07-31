@@ -6,7 +6,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md)
 
-Windows 版および Linux 版 sshpass ツール。Linux の sshpass と同様の機能を提供します。
+Windows、Linux、macOS 対応の sshpass ツール。Linux の sshpass と同様の機能を提供します。
 
 > 💡 **このプロジェクトが役に立ったら、⭐ Star をお願いします！** より多くの人にこのツールを見つけてもらえます。
 
@@ -87,6 +87,12 @@ win-sshpass -p 'password' ssh user@example.com 'whoami'
 # 秘密鍵認証でコマンド実行
 win-sshpass -i ~/.ssh/id_ed25519 ssh user@example.com 'hostname'
 
+# SSH agent 認証（自動検出、-p/-i 不要）
+win-sshpass ssh user@example.com 'whoami'
+
+# JSON 出力モード（AI エージェントと自動化向け）
+win-sshpass -json -p 'password' ssh user@example.com 'uptime'
+
 # ファイルをアップロード
 win-sshpass -h example.com -p 'password' -local file.txt -remote /tmp/file.txt
 
@@ -145,6 +151,12 @@ win-sshpass -p <パスワード> ssh user@host
 
 # 秘密鍵認証
 win-sshpass -i <秘密鍵パス> ssh [user@host] [コマンド]
+
+# SSH agent 認証（自動検出、-p/-i 不要）
+win-sshpass ssh user@host 'whoami'
+
+# SSH agent 転送（-A フラグ）
+win-sshpass -A -i ~/.ssh/id_ed25519 ssh user@jumphost
 
 # 環境変数からパスワード読み込み
 SSHPASS=<パスワード> win-sshpass -e ssh user@host
@@ -223,6 +235,10 @@ win-sshpass -p <パスワード> rsync -avz user@host:<リモートパス> <ロ�
 | `-retry` | 総接続試行回数（デフォルト：3） | `-retry 5` |
 | `-resume` | 中断されたファイル転送をブレークポイントから再開 | `-resume` |
 | `-proxy` | プロキシ URL（socks5/socks4/http/https） | `-proxy socks5://127.0.0.1:1080` |
+| `-L` | ローカルポート転送（繰り返し可能） | `-L 8080:db.internal:3306` |
+| `-R` | リモートポート転送（繰り返し可能） | `-R 9090:localhost:8080` |
+| `-A` | ssh-agent 転送を有効化 | `-A` |
+| `-json` | JSON 形式で出力（AI/自動化向け） | `-json` |
 | `-v` | バージョン表示 | `-v` |
 | `-help` | ヘルプメッセージを表示 | `-help` |
 
@@ -346,6 +362,21 @@ win-sshpass keygen -algo rsa -out ~/.ssh/mykey -comment "my-server"
 
 # 14. 生成した秘密鍵でログイン（公開鍵をサーバーにデプロイ後）
 win-sshpass -i ~/.ssh/id_ed25519 ssh user@host
+
+# 15. SSH agent 認証（パスワード/鍵不要）
+win-sshpass ssh user@host 'whoami'
+
+# 16. SSH agent 転送でジャンプホストへ
+win-sshpass -A ssh user@jumphost
+
+# 17. JSON 出力モード（自動化向け）
+win-sshpass -json -p 'pass' ssh user@host 'uptime'
+
+# 18. ローカルポート転送（ジャンプホスト経由で内部 DB にアクセス）
+win-sshpass -p 'pass' -L 3306:db.internal:3306 ssh user@jumphost
+
+# 19. リモートポート転送（ローカル開発サーバーを公開）
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
 ```
 
 ## プロキシ対応
@@ -377,6 +408,26 @@ win-sshpass -p 'pass' -proxy socks5://127.0.0.1:1080 scp ./app.jar user@host:/op
 # 設定ファイルでプロキシを指定
 # proxy: socks5://user:pass@127.0.0.1:1080
 ```
+
+## ポート転送
+
+SSH サーバーを介した TCP トンネル接続。ローカル転送（`-L`）とリモート転送（`-R`）に対応：
+
+```bash
+# ローカル転送：ジャンプホスト経由で db.internal:3306 → localhost:8080
+win-sshpass -p 'pass' -L 8080:db.internal:3306 ssh user@jumphost
+
+# 複数ローカル転送
+win-sshpass -p 'pass' -L 8080:db1.internal:3306 -L 8081:db2.internal:3306 ssh user@jumphost
+
+# リモート転送：localhost:8080 をリモートサーバーのポート 9090 に公開
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
+
+# 転送のみモード（コマンドなし、Ctrl+C までブロック）
+win-sshpass -p 'pass' -L 8080:db.internal:3306 -L 6379:redis.internal:6379 ssh user@jumphost
+```
+
+> ポート転送は標準 OpenSSH 形式：`[バインドアドレス:]ポート:ホスト:ホストポート`。SCP、Rsync、ファイル転送モードとの併用は不可。
 
 ## Git Bash の注意事項
 

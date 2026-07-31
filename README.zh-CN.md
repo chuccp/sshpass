@@ -6,7 +6,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md)
 
-跨平台 sshpass 工具（Windows 和 Linux），实现类似 Linux sshpass 的功能。
+跨平台 sshpass 工具（Windows、Linux 和 macOS），实现类似 Linux sshpass 的功能。
 
 > 💡 **如果这个项目对你有帮助，欢迎点个 ⭐ Star！** 让更多人发现这个工具。
 
@@ -87,6 +87,12 @@ win-sshpass -p 'password' ssh user@example.com 'whoami'
 # 私钥登录执行命令
 win-sshpass -i ~/.ssh/id_ed25519 ssh user@example.com 'hostname'
 
+# SSH agent 认证（自动检测，无需 -p/-i）
+win-sshpass ssh user@example.com 'whoami'
+
+# JSON 输出模式，适用于 AI 代理和自动化
+win-sshpass -json -p 'password' ssh user@example.com 'uptime'
+
 # 上传文件
 win-sshpass -h example.com -p 'password' -local file.txt -remote /tmp/file.txt
 
@@ -145,6 +151,12 @@ win-sshpass -p <密码> ssh user@host
 
 # 私钥认证
 win-sshpass -i <私钥路径> ssh [user@host] [命令]
+
+# SSH agent 认证（自动检测，无需 -p/-i）
+win-sshpass ssh user@host 'whoami'
+
+# SSH agent 转发（-A 参数）
+win-sshpass -A -i ~/.ssh/id_ed25519 ssh user@jumphost
 
 # 环境变量密码
 SSHPASS=<密码> win-sshpass -e ssh user@host
@@ -223,6 +235,10 @@ win-sshpass -p <密码> rsync -avz user@host:<远程路径> <本地路径>
 | `-retry` | 总连接尝试次数（默认：3） | `-retry 5` |
 | `-resume` | 从断点恢复中断的文件传输 | `-resume` |
 | `-proxy` | 代理 URL（socks5/socks4/http/https） | `-proxy socks5://127.0.0.1:1080` |
+| `-L` | 本地端口转发（可重复使用） | `-L 8080:db.internal:3306` |
+| `-R` | 远程端口转发（可重复使用） | `-R 9090:localhost:8080` |
+| `-A` | 启用 ssh-agent 转发 | `-A` |
+| `-json` | JSON 格式输出（适用于 AI/自动化） | `-json` |
 | `-algo` | 密钥算法（ed25519/rsa），默认 ed25519 | `-algo rsa` |
 | `-out` | 密钥输出路径前缀，默认 id_ed25519 | `-out ~/.ssh/mykey` |
 | `-comment` | 密钥注释 | `-comment "my-laptop"` |
@@ -337,6 +353,21 @@ win-sshpass keygen -out ~/.ssh/my_key -comment "my-work-laptop"
 
 # 13. 生成 RSA 密钥对
 win-sshpass keygen -algo rsa -out ~/.ssh/my_rsa_key
+
+# 14. SSH agent 认证（无需密码或密钥）
+win-sshpass ssh user@host 'whoami'
+
+# 15. SSH agent 转发到跳板机
+win-sshpass -A ssh user@jumphost
+
+# 16. JSON 输出模式（适用于自动化）
+win-sshpass -json -p 'pass' ssh user@host 'uptime'
+
+# 17. 本地端口转发（通过跳板机访问内部数据库）
+win-sshpass -p 'pass' -L 3306:db.internal:3306 ssh user@jumphost
+
+# 18. 远程端口转发（暴露本地开发服务器）
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
 ```
 
 ## 代理支持
@@ -368,6 +399,26 @@ win-sshpass -p 'pass' -proxy socks5://127.0.0.1:1080 scp ./app.jar user@host:/op
 # 配置文件中设置代理
 # proxy: socks5://user:pass@127.0.0.1:1080
 ```
+
+## 端口转发
+
+通过 SSH 服务器建立 TCP 隧道连接，支持本地转发（`-L`）和远程转发（`-R`）：
+
+```bash
+# 本地转发：通过跳板机访问 db.internal:3306 → localhost:8080
+win-sshpass -p 'pass' -L 8080:db.internal:3306 ssh user@jumphost
+
+# 多个本地转发
+win-sshpass -p 'pass' -L 8080:db1.internal:3306 -L 8081:db2.internal:3306 ssh user@jumphost
+
+# 远程转发：将 localhost:8080 暴露在远程服务器的 9090 端口
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
+
+# 仅转发模式（无命令，阻塞直到 Ctrl+C）
+win-sshpass -p 'pass' -L 8080:db.internal:3306 -L 6379:redis.internal:6379 ssh user@jumphost
+```
+
+> 端口转发使用标准 OpenSSH 格式：`[绑定地址:]端口:主机:主机端口`。不支持与 SCP、Rsync 或文件传输模式同时使用。
 
 ## Git Bash 注意事项
 

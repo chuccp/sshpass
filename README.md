@@ -11,7 +11,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md)
 
-A cross-platform implementation of sshpass (Windows & Linux), providing similar functionality to the Linux sshpass tool.
+A cross-platform implementation of sshpass (Windows, Linux & macOS), providing similar functionality to the Linux sshpass tool.
 
 > 💡 **Like this project?** Give it a ⭐ Star — it helps others discover the tool!
 
@@ -92,6 +92,12 @@ win-sshpass -p 'password' ssh user@example.com 'whoami'
 # Private key login and execute command
 win-sshpass -i ~/.ssh/id_ed25519 ssh user@example.com 'hostname'
 
+# SSH agent authentication (auto-detect, no -p/-i needed)
+win-sshpass ssh user@example.com 'whoami'
+
+# JSON output for AI agents and automation
+win-sshpass -json -p 'password' ssh user@example.com 'uptime'
+
 # Upload file
 win-sshpass -h example.com -p 'password' -local file.txt -remote /tmp/file.txt
 
@@ -150,6 +156,12 @@ win-sshpass -p <password> ssh user@host
 
 # Private key authentication
 win-sshpass -i <private_key_path> ssh [user@host] [command]
+
+# SSH agent authentication (auto-detect, no -p/-i needed)
+win-sshpass ssh user@host 'whoami'
+
+# SSH agent with forwarding (-A flag)
+win-sshpass -A -i ~/.ssh/id_ed25519 ssh user@jumphost
 
 # Password from environment variable
 SSHPASS=<password> win-sshpass -e ssh user@host
@@ -228,6 +240,10 @@ win-sshpass -p <password> rsync -avz user@host:<remote_path> <local_path>
 | `-retry` | Total connection attempts (default: 3) | `-retry 5` |
 | `-resume` | Resume interrupted file transfer from breakpoint | `-resume` |
 | `-proxy` | Proxy URL (socks5/socks4/http/https) | `-proxy socks5://127.0.0.1:1080` |
+| `-L` | Local port forward (repeatable) | `-L 8080:db.internal:3306` |
+| `-R` | Remote port forward (repeatable) | `-R 9090:localhost:8080` |
+| `-A` | Enable ssh-agent forwarding | `-A` |
+| `-json` | Output results as JSON (for AI/automation) | `-json` |
 | `-v` | Show version | `-v` |
 | `-help` | Show help message | `-help` |
 
@@ -355,6 +371,21 @@ win-sshpass keygen -algo rsa -out ~/.ssh/mykey -comment "my-server"
 
 # 14. Login with generated private key (after deploying public key to server)
 win-sshpass -i ~/.ssh/id_ed25519 ssh user@host
+
+# 15. SSH agent authentication (no password/key needed)
+win-sshpass ssh user@host 'whoami'
+
+# 16. SSH agent forwarding to jumphost
+win-sshpass -A ssh user@jumphost
+
+# 17. JSON output for automation
+win-sshpass -json -p 'pass' ssh user@host 'uptime'
+
+# 18. Local port forwarding (access internal DB via jumphost)
+win-sshpass -p 'pass' -L 3306:db.internal:3306 ssh user@jumphost
+
+# 19. Remote port forwarding (expose local dev server)
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
 ```
 
 ## Proxy Support
@@ -386,6 +417,26 @@ win-sshpass -p 'pass' -proxy socks5://127.0.0.1:1080 scp ./app.jar user@host:/op
 # Proxy via config file
 # proxy: socks5://user:pass@127.0.0.1:1080
 ```
+
+## Port Forwarding
+
+Tunnel TCP connections through an SSH server using local (`-L`) or remote (`-R`) forwarding:
+
+```bash
+# Local forward: access db.internal:3306 via jumphost at localhost:8080
+win-sshpass -p 'pass' -L 8080:db.internal:3306 ssh user@jumphost
+
+# Multiple local forwards
+win-sshpass -p 'pass' -L 8080:db1.internal:3306 -L 8081:db2.internal:3306 ssh user@jumphost
+
+# Remote forward: expose localhost:8080 at remote server's port 9090
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
+
+# Forward-only mode (block until Ctrl+C, no command)
+win-sshpass -p 'pass' -L 8080:db.internal:3306 -L 6379:redis.internal:6379 ssh user@jumphost
+```
+
+> Port forwarding uses the standard OpenSSH format: `[bind_address:]port:host:hostport`. Not supported with SCP, Rsync, or file transfer modes.
 
 ## Git Bash Notes
 

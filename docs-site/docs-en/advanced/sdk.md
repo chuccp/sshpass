@@ -149,9 +149,7 @@ if err != nil {
     log.Fatal(err)
 }
 defer fwd.Close()
-
-// Block until the forwarder stops
-fwd.Wait()
+// Forwarder runs in the background until Close() is called
 ```
 
 #### RemoteForward

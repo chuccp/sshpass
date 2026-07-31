@@ -149,9 +149,7 @@ if err != nil {
     log.Fatal(err)
 }
 defer fwd.Close()
-
-// 阻塞直到转发器停止
-fwd.Wait()
+// Forwarder 在后台运行，直到调用 Close() 停止
 ```
 
 #### RemoteForward

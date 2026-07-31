@@ -149,9 +149,7 @@ if err != nil {
     log.Fatal(err)
 }
 defer fwd.Close()
-
-// 阻塞直到轉送器停止
-fwd.Wait()
+// Forwarder 在背景執行，直到呼叫 Close() 停止
 ```
 
 #### RemoteForward
@@ -237,7 +235,7 @@ err = sshpass.DeployPublicKey(client, pair.PublicKey)
 
 ## 函式選項
 
-透過函式選項設定 User 的行為：
+透過函式選項設定 Client 的行為：
 
 ### I/O 串流
 
