@@ -53,6 +53,42 @@ win-sshpass -i ~/.ssh/id_ed25519 ssh user@host 'uname -a'
 !!! note "注意"
     win-sshpass 不支援加密（有密碼保護）的私鑰。如果私鑰有密碼保護，請先解密或使用 ssh-agent。
 
+## SSH Agent 認證
+
+win-sshpass 可以自動使用本機 ssh-agent（如 OpenSSH agent、Windows 上的 Pageant）進行認證。當未指定 `-p`（密碼）或 `-i`（金鑰路徑）時，預設啟用 ssh-agent 自動檢測：
+
+```bash
+# 自動檢測並使用 ssh-agent（無需 -p 或 -i）
+win-sshpass ssh user@host 'whoami'
+
+# 同樣適用於檔案傳輸和 SCP/Rsync
+win-sshpass -h host -local file.txt -remote /tmp/file.txt
+win-sshpass scp file.txt user@host:/tmp/
+win-sshpass rsync -avz ./ user@host:/backup/
+```
+
+!!! tip "ssh-agent 設定"
+    確保 ssh-agent 正在執行並已載入金鑰（使用 `ssh-add -l` 檢查）。在 Windows 上，可以在「服務」中啟用 OpenSSH Authentication Agent 服務。
+
+### Agent 轉送（`-A`）
+
+使用 `-A` 參數將本機 ssh-agent 轉送到遠端伺服器，允許遠端主機使用本機金鑰進行進一步的 SSH 連線（例如從跳板機執行 `git clone`）：
+
+```bash
+# 啟用 agent 轉送
+win-sshpass -A -i ~/.ssh/id_ed25519 ssh user@jumphost
+
+# 無密碼/金鑰 — 自動檢測 agent + 轉送
+win-sshpass -A ssh user@jumphost
+```
+
+!!! info "Agent 轉送需要本機 Agent"
+    Agent 轉送（`-A`）需要執行中的本機 ssh-agent 並已載入金鑰。啟用後轉送將自動處理。
+
+## 鍵盤互動式認證
+
+當標準密碼認證不可用時，win-sshpass 會自動回退到鍵盤互動式認證。這確保與基於 PAM 的伺服器（如 Cisco 路由器、部分使用自訂 PAM 設定的 Linux 發行版）相容。無需額外參數 —— 回退是透明的。
+
 ## 金鑰生成
 
 win-sshpass 內建了 SSH 金鑰對生成功能，可以在本地生成客戶端金鑰對（私鑰 + 公鑰）。
@@ -208,6 +244,45 @@ win-sshpass -p 'pass' -proxy socks5://127.0.0.1:1080 scp ./app.jar user@host:/op
 
 !!! info "支援的代理協定"
     支援 SOCKS5（可選使用者名稱/密碼認證）、SOCKS4、SOCKS4A、HTTP CONNECT 和 HTTPS CONNECT 代理。
+
+## 連接埠轉送
+
+win-sshpass 支援 SSH 連接埠轉送，可透過 SSH 伺服器建立 TCP 隧道連線。本機轉送（`-L`）和遠端轉送（`-R`）均使用標準的 OpenSSH 規範格式。
+
+### 本機轉送（`-L`）
+
+透過 SSH 伺服器將本機連接埠轉送到遠端位址：
+
+```bash
+# 格式：-L [繫結位址:]連接埠:主機:主機連接埠
+# 將 localhost:8080 → db.internal:3306 透過 SSH 主機轉送
+win-sshpass -p 'pass' -L 8080:db.internal:3306 ssh user@jumphost
+
+# 繫結到特定本機位址
+win-sshpass -p 'pass' -L 127.0.0.1:8080:db.internal:3306 ssh user@jumphost
+
+# 多個轉送
+win-sshpass -p 'pass' -L 8080:db1.internal:3306 -L 8081:db2.internal:3306 ssh user@jumphost
+
+# 僅轉送模式（無命令 — 阻塞直到 Ctrl+C）
+win-sshpass -p 'pass' -L 8080:db.internal:3306 -L 9090:redis.internal:6379 ssh user@jumphost
+```
+
+### 遠端轉送（`-R`）
+
+將遠端連接埠轉送回本機位址：
+
+```bash
+# 格式：-R [繫結位址:]連接埠:主機:主機連接埠
+# 將 localhost:8080 暴露在遠端伺服器的 9090 連接埠
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
+
+# 允許遠端主機連線
+win-sshpass -p 'pass' -R 0.0.0.0:9090:localhost:8080 ssh user@server
+```
+
+!!! info "連接埠轉送限制"
+    連接埠轉送僅支援 SSH 命令/Shell 模式。無法與 SCP、Rsync 或檔案傳輸（`-local`/`-remote`）操作同時使用。
 
 ## 檔案雜湊與校驗
 

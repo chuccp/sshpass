@@ -6,7 +6,7 @@ hide:
 
 # win-sshpass
 
-> クロスプラットフォームの sshpass 実装（Windows、Linux、macOS）：パスワード/キー SSH ログイン、インタラクティブシェル、SFTP/SCP/Rsync ファイル転送、SOCKS5/SOCKS4/HTTP プロキシトンネル、ブレークポイントレジューム、ファイルハッシュ検証、鍵生成、再利用可能な Go SDK。
+> クロスプラットフォームの sshpass 実装（Windows、Linux、macOS）：パスワード/キー/ssh-agent SSH ログイン、インタラクティブシェル、SFTP/SCP/Rsync ファイル転送、ポート転送 (-L/-R)、SOCKS5/SOCKS4/HTTP プロキシトンネル、AI エージェント向け JSON 出力、ブレークポイントレジューム、ファイルハッシュ検証、鍵生成、再利用可能な Go SDK。
 
 [クイックスタート](getting-started/quick-start.md){ .md-button .md-button--primary }
 [インストール](getting-started/installation.md){ .md-button }
@@ -21,6 +21,8 @@ hide:
 - **:material-cloud-download: シェル rz/sz** — インタラクティブシェルで `rz`/`sz` コマンドを直接使用可能 — リモートサーバーにソフトウェアのインストールは不要。転送は SFTP 経由。
 - **:material-shield-key: 鍵生成** — 組み込みの SSH 鍵ペア生成（Ed25519 および RSA）、ssh-keygen 不要。SSH 経由で公開鍵を配布し、パスワードなしログインを実現。
 - **:material-lan-connect: プロキシトンネル** — SOCKS5（認証付き）、SOCKS4、SOCKS4A、HTTP CONNECT、HTTPS CONNECT プロキシ経由で SSH 接続をトンネル。
+- **:material-swap-horizontal: ポート転送** — ローカル（`-L`）およびリモート（`-R`）TCP ポート転送を SSH トンネル経由で実現、プログラム用の `Forwarder` SDK API も提供。
+- **:material-shield-account: SSH Agent と JSON モード** — ローカル ssh-agent を自動検出して認証、オプションのエージェント転送（`-A`）。AI エージェントと自動化のための構造化 JSON 出力（`-json`）。
 - **:material-reload: ブレークポイントレジューム** — 中断された SFTP アップロード/ダウンロードを `-resume` フラグで途中から再開。
 - **:material-fingerprint: ファイルハッシュ検証** — ローカルファイルのチェックサム（MD5、SHA-1、SHA-256、SHA-512）を計算・検証 — SSH 接続不要。
 - **:material-package-variant: 再利用可能な Go SDK** — `package sshpass` をインポートして、SSH/SFTP/シェルを独自のアプリに組み込み可能。注入可能な I/O、プログレスコールバック、UI 依存ゼロ。

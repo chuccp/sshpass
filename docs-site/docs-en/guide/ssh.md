@@ -53,6 +53,42 @@ win-sshpass -i ~/.ssh/id_ed25519 ssh user@host 'uname -a'
 !!! note "Note"
     win-sshpass does not support encrypted (passphrase-protected) private keys. If your key is passphrase-protected, decrypt it first or use ssh-agent.
 
+## SSH Agent Authentication
+
+win-sshpass can automatically use your local ssh-agent (e.g., OpenSSH agent, Pageant on Windows) for authentication. When neither `-p` (password) nor `-i` (key path) is specified, ssh-agent auto-detection is enabled by default:
+
+```bash
+# Auto-detect and use ssh-agent (no -p or -i needed)
+win-sshpass ssh user@host 'whoami'
+
+# Also works with file transfer and SCP/Rsync
+win-sshpass -h host -local file.txt -remote /tmp/file.txt
+win-sshpass scp file.txt user@host:/tmp/
+win-sshpass rsync -avz ./ user@host:/backup/
+```
+
+!!! tip "ssh-agent Setup"
+    Make sure your ssh-agent is running and has keys loaded (`ssh-add -l` to check). On Windows, the OpenSSH Authentication Agent service can be enabled in Services.
+
+### Agent Forwarding (`-A`)
+
+Use the `-A` flag to forward your local ssh-agent to the remote server, allowing the remote host to use your local keys for further SSH connections (e.g., `git clone` via SSH from a jump host):
+
+```bash
+# Enable agent forwarding
+win-sshpass -A -i ~/.ssh/id_ed25519 ssh user@jumphost
+
+# Without password/key — auto-detect agent + forward
+win-sshpass -A ssh user@jumphost
+```
+
+!!! info "Agent Forwarding Requires Local Agent"
+    Agent forwarding (`-A`) requires a running local ssh-agent with keys loaded. The forwarding is handled automatically once enabled.
+
+## Keyboard-Interactive Authentication
+
+win-sshpass automatically falls back to keyboard-interactive authentication when standard password authentication is not available. This ensures compatibility with PAM-based servers (e.g., Cisco routers, some Linux distributions with custom PAM configurations). No additional flags are required — the fallback is transparent.
+
 ## Key Generation
 
 win-sshpass has built-in SSH key pair generation. It creates a client-side key pair (private key + public key) locally.
@@ -208,6 +244,45 @@ win-sshpass -p 'pass' -proxy socks5://127.0.0.1:1080 scp ./app.jar user@host:/op
 
 !!! info "Supported Proxy Protocols"
     SOCKS5 (with optional username/password auth), SOCKS4, SOCKS4A, HTTP CONNECT, and HTTPS CONNECT proxies are all supported.
+
+## Port Forwarding
+
+win-sshpass supports SSH port forwarding to tunnel TCP connections through an SSH server. Both local (`-L`) and remote (`-R`) forwarding use the standard OpenSSH spec format.
+
+### Local Forwarding (`-L`)
+
+Forward a local port to a remote address through the SSH server:
+
+```bash
+# Format: -L [bind_address:]port:host:hostport
+# Forward localhost:8080 → db.internal:3306 via the SSH host
+win-sshpass -p 'pass' -L 8080:db.internal:3306 ssh user@jumphost
+
+# Bind to a specific local address
+win-sshpass -p 'pass' -L 127.0.0.1:8080:db.internal:3306 ssh user@jumphost
+
+# Multiple forwards
+win-sshpass -p 'pass' -L 8080:db1.internal:3306 -L 8081:db2.internal:3306 ssh user@jumphost
+
+# Forward-only mode (no command — blocks until Ctrl+C)
+win-sshpass -p 'pass' -L 8080:db.internal:3306 -L 9090:redis.internal:6379 ssh user@jumphost
+```
+
+### Remote Forwarding (`-R`)
+
+Forward a remote port back to a local address:
+
+```bash
+# Format: -R [bind_address:]port:host:hostport
+# Expose localhost:8080 on the remote server's port 9090
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
+
+# Allow remote hosts to connect
+win-sshpass -p 'pass' -R 0.0.0.0:9090:localhost:8080 ssh user@server
+```
+
+!!! info "Port Forwarding Limits"
+    Port forwarding is only supported with SSH command/shell mode. It cannot be combined with SCP, Rsync, or file transfer (`-local`/`-remote`) operations.
 
 ## File Hash & Verify
 

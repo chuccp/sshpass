@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.9.1
+
+- Add JSON output mode (`-json` flag) — structured JSON results for AI agents and automation, with progress bar suppressed on stderr in JSON mode
+- Add SSH port forwarding (`-L` local, `-R` remote) with `Forwarder` SDK API — tunnel TCP connections through SSH
+- Add ssh-agent authentication and forwarding (`-A` flag, auto-detect) — automatically use local ssh-agent when no password/key provided
+- Add keyboard-interactive authentication fallback for PAM/Cisco servers
+- Add `ExecCapture` SDK method — capture command output programmatically (non-streaming)
+- Remove docker-test from repository
+- Various code cleanup and refactoring
+
 ## v0.8.1
 
 - Add SSH key pair generation subcommand (`keygen`) — Ed25519 and RSA, deploy public keys to enable password-less login

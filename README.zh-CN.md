@@ -12,7 +12,7 @@
 
 ## 功能特性
 
-- 支持密码或私钥认证的 SSH 登录
+- 支持密码、私钥或 ssh-agent 认证的 SSH 登录
 - 执行远程命令或打开交互式 Shell
 - 通过 SFTP 上传/下载文件（带进度条）
 - SCP 风格和 Rsync 风格的文件传输
@@ -23,6 +23,9 @@
 - 支持 IPv6 地址
 - 支持 Windows（x64、ARM64）、Linux（amd64、arm64）和 macOS（amd64、arm64）
 - **可复用 Go SDK** — 作为库引入（`package sshpass`），在自有应用中嵌入 SSH/SFTP/Shell 能力，支持注入 I/O 流与进度回调
+- **端口转发** — 本地（`-L`）和远程（`-R`）TCP 端口转发，通过 SSH 隧道传输
+- **SSH Agent 转发**（`-A`）— 转发本地 ssh-agent 到远程服务器，无凭据时自动检测 agent
+- **JSON 输出模式**（`-json`）— 为 AI 代理和自动化输出结构化 JSON 结果
 - **代理支持** — 通过 SOCKS5/SOCKS4/HTTP/HTTPS 代理隧道连接 SSH
 - **断点续传** — 中断的 SFTP 文件传输可从断点处恢复
 - **文件哈希与校验** — 计算和校验本地文件哈希（MD5、SHA-1、SHA-256、SHA-512）

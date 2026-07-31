@@ -12,7 +12,7 @@
 
 ## 功能特色
 
-- 支援密碼或私鑰認證的 SSH 登入
+- 支援密碼、私鑰或 ssh-agent 認證的 SSH 登入
 - 執行遠端命令或開啟互動式 Shell
 - 透過 SFTP 上傳/下載檔案（附進度條）
 - SCP 風格和 Rsync 風格的檔案傳輸
@@ -23,6 +23,9 @@
 - 支援 IPv6 位址
 - 支援 Windows（x64、ARM64）、Linux（amd64、arm64）和 macOS（amd64、arm64）
 - **可複用 Go SDK** — 作為函式庫引入（`package sshpass`），在自有應用中嵌入 SSH/SFTP/Shell 能力，支援注入 I/O 串流與進度回呼
+- **連接埠轉送** — 本機（`-L`）和遠端（`-R`）TCP 連接埠轉送，透過 SSH 隧道傳輸
+- **SSH Agent 轉送**（`-A`）— 轉送本機 ssh-agent 到遠端伺服器，無憑據時自動檢測 agent
+- **JSON 輸出模式**（`-json`）— 為 AI 代理和自動化輸出結構化 JSON 結果
 - **代理支援** — 透過 SOCKS5/SOCKS4/HTTP/HTTPS 代理通道連線 SSH
 - **斷點續傳** — 中斷的 SFTP 檔案傳輸可從斷點處恢復
 - **檔案雜湊與校驗** — 計算和校驗本地檔案雜湊（MD5、SHA-1、SHA-256、SHA-512）

@@ -64,6 +64,22 @@ err := client.Exec("ls -la")
 - Output streams are configured via `WithStdout`/`WithStderr` (default: `os.Stdout`/`os.Stderr`)
 - Input stream is configured via `WithStdin` (default: `os.Stdin`)
 
+### ExecCapture
+
+Executes a command and captures the output (non-streaming), suitable for programmatic processing:
+
+```go
+stdout, stderr, exitCode, err := client.ExecCapture("whoami")
+if exitCode == 0 && err == nil {
+    fmt.Println("Output:", stdout)
+} else {
+    fmt.Println("Error:", stderr)
+}
+```
+
+- `exitCode`: 0 on success, non-zero for remote exit status, -1 for session/connection errors
+- `err`: non-nil only on session creation or connection-level failures; nil for normal exits (including non-zero exit codes)
+
 ### Shell
 
 Starts an interactive shell:
@@ -117,6 +133,48 @@ if client.TimedOut() {
     fmt.Println("Operation timed out")
 }
 ```
+
+### Port Forwarding
+
+Create TCP tunnels through the SSH connection. Both local and remote forwarding return a `*Forwarder` that runs in the background.
+
+#### LocalForward
+
+Listens on a local address and forwards each connection to a remote target through SSH:
+
+```go
+// Forward localhost:8080 → db.internal:3306 via the SSH server
+fwd, err := client.LocalForward("127.0.0.1:8080", "db.internal:3306")
+if err != nil {
+    log.Fatal(err)
+}
+defer fwd.Close()
+
+// Block until the forwarder stops
+fwd.Wait()
+```
+
+#### RemoteForward
+
+Asks the SSH server to listen on a remote address and forwards connections back to a local target:
+
+```go
+// Expose localhost:8080 on the remote server's port 9090
+fwd, err := client.RemoteForward("0.0.0.0:9090", "127.0.0.1:8080")
+if err != nil {
+    log.Fatal(err)
+}
+defer fwd.Close()
+```
+
+#### Forwarder Lifecycle
+
+- `Close()` — stops the tunnel and releases the listener (safe to call multiple times)
+- `Wait()` — blocks until the forwarder stops (by `Close()` or listener error)
+- Both methods are goroutine-safe
+
+!!! info "Port Forwarding & Connection Sharing"
+    `LocalForward` and `RemoteForward` share the Client's SSH connection. Closing the `Client` also terminates all forwarders.
 
 ## Configuration (Config)
 
@@ -248,6 +306,29 @@ client, err := sshpass.NewClient(cfg,
 ```
 
 Enables breakpoint-resume for SFTP transfers — interrupted uploads/downloads continue from where they left off.
+
+### SSH Agent Forwarding
+
+```go
+client, err := sshpass.NewClient(cfg,
+    sshpass.WithAgentForward(),
+)
+```
+
+Enables ssh-agent forwarding — the remote server can use the local ssh-agent for further SSH connections (e.g., `git clone` from a jump host). Requires a running local ssh-agent with keys loaded.
+
+### SSH Agent Authentication
+
+Set `UseAgent` on the config to authenticate using the local ssh-agent:
+
+```go
+cfg := sshpass.NewConfig()
+cfg.Host = "example.com"
+cfg.User = "root"
+cfg.UseAgent = true  // Auto-detect and use local ssh-agent
+```
+
+When `UseAgent` is true and no password or key path is configured, win-sshpass automatically connects to the local ssh-agent for authentication. This is the default behavior in the CLI when neither `-p` nor `-i` is specified.
 
 ### Proxy Configuration
 

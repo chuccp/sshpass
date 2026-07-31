@@ -64,6 +64,22 @@ err := client.Exec("ls -la")
 - 出力ストリームは `WithStdout`/`WithStderr` で設定（デフォルト：`os.Stdout`/`os.Stderr`）
 - 入力ストリームは `WithStdin` で設定（デフォルト：`os.Stdin`）
 
+### ExecCapture
+
+コマンドを実行して出力をキャプチャ（非ストリーミング）、プログラム的な処理に適しています：
+
+```go
+stdout, stderr, exitCode, err := client.ExecCapture("whoami")
+if exitCode == 0 && err == nil {
+    fmt.Println("Output:", stdout)
+} else {
+    fmt.Println("Error:", stderr)
+}
+```
+
+- `exitCode`: 0 は成功、非ゼロはリモート終了コード、-1 はセッション/接続エラー
+- `err`: セッション作成や接続レベルの失敗時のみ非 nil。正常終了（非ゼロ終了コードを含む）時は nil
+
 ### Shell
 
 インタラクティブシェルを開始：
@@ -117,6 +133,48 @@ if client.TimedOut() {
     fmt.Println("操作がタイムアウトしました")
 }
 ```
+
+### ポート転送
+
+SSH 接続を介して TCP トンネルを作成します。ローカル転送とリモート転送の両方がバックグラウンドで実行される `*Forwarder` を返します。
+
+#### LocalForward
+
+ローカルアドレスでリッスンし、各接続を SSH 経由でリモートターゲットに転送します：
+
+```go
+// localhost:8080 → db.internal:3306 を SSH サーバー経由で転送
+fwd, err := client.LocalForward("127.0.0.1:8080", "db.internal:3306")
+if err != nil {
+    log.Fatal(err)
+}
+defer fwd.Close()
+
+// フォワーダーが停止するまでブロック
+fwd.Wait()
+```
+
+#### RemoteForward
+
+SSH サーバーにリモートアドレスでのリッスンを要求し、接続をローカルターゲットに転送します：
+
+```go
+// localhost:8080 をリモートサーバーのポート 9090 に公開
+fwd, err := client.RemoteForward("0.0.0.0:9090", "127.0.0.1:8080")
+if err != nil {
+    log.Fatal(err)
+}
+defer fwd.Close()
+```
+
+#### Forwarder のライフサイクル
+
+- `Close()` — トンネルを停止しリスナーを解放（複数回呼び出し安全）
+- `Wait()` — フォワーダーが停止するまでブロック（`Close()` またはリスナーエラー）
+- 両メソッドは goroutine セーフ
+
+!!! info "ポート転送と接続共有"
+    `LocalForward` と `RemoteForward` は Client の SSH 接続を共有します。`Client` を閉じるとすべてのフォワーダーも終了します。
 
 ## 設定（Config）
 
@@ -248,6 +306,29 @@ client, err := sshpass.NewClient(cfg,
 ```
 
 SFTP 転送のブレークポイントレジュームを有効にします。中断されたアップロード/ダウンロードは中断した箇所から再開します。
+
+### SSH Agent 転送
+
+```go
+client, err := sshpass.NewClient(cfg,
+    sshpass.WithAgentForward(),
+)
+```
+
+ssh-agent 転送を有効にします。リモートサーバーがローカルの ssh-agent を使用してさらに SSH 接続（例：ジャンプホストからの `git clone`）を行えます。実行中のローカル ssh-agent とロードされた鍵が必要です。
+
+### SSH Agent 認証
+
+設定で `UseAgent` を設定してローカルの ssh-agent で認証します：
+
+```go
+cfg := sshpass.NewConfig()
+cfg.Host = "example.com"
+cfg.User = "root"
+cfg.UseAgent = true  // ローカル ssh-agent を自動検出して使用
+```
+
+`UseAgent` が true でパスワードや鍵パスが設定されていない場合、win-sshpass は自動的にローカル ssh-agent に接続して認証します。これは CLI で `-p` も `-i` も指定しない場合のデフォルト動作です。
 
 ### プロキシ設定
 

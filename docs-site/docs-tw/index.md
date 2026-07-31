@@ -6,7 +6,7 @@ hide:
 
 # win-sshpass
 
-> win-sshpass — 跨平台 sshpass 實作：密碼/金鑰 SSH 登入、互動式 Shell、SFTP/SCP/Rsync 檔案傳輸、SOCKS5/SOCKS4/HTTP 代理通道、斷點續傳、檔案雜湊校驗、金鑰產生，以及可重複使用的 Go SDK。
+> win-sshpass — 跨平台 sshpass 實作：密碼/金鑰/ssh-agent SSH 登入、互動式 Shell、SFTP/SCP/Rsync 檔案傳輸、連接埠轉送 (-L/-R)、SOCKS5/SOCKS4/HTTP 代理通道、AI 代理 JSON 輸出、斷點續傳、檔案雜湊校驗、金鑰產生，以及可重複使用的 Go SDK。
 
 [快速開始](getting-started/quick-start.md){ .md-button .md-button--primary }
 [安裝](getting-started/installation.md){ .md-button }
@@ -21,6 +21,8 @@ hide:
 - **:material-cloud-download: Shell 內 rz/sz** — 在互動式 Shell 中直接使用 `rz`/`sz` 命令 — 遠端伺服器無需安裝任何軟體；傳輸透過 SFTP 進行。
 - **:material-shield-key: 金鑰產生** — 內建 SSH 金鑰對產生（Ed25519 和 RSA），無需 ssh-keygen。透過 SSH 部署公鑰實現免密碼登入。
 - **:material-lan-connect: 代理通道** — 透過 SOCKS5（含認證）、SOCKS4、SOCKS4A、HTTP CONNECT 和 HTTPS CONNECT 代理通道化 SSH 連線。
+- **:material-swap-horizontal: 連接埠轉送** — 本機（`-L`）和遠端（`-R`）TCP 連接埠轉送，透過 SSH 隧道傳輸，提供 `Forwarder` SDK API 供程式化使用。
+- **:material-shield-account: SSH Agent 與 JSON 模式** — 自動檢測並使用本機 ssh-agent 進行認證，支援 agent 轉送（`-A`）。結構化 JSON 輸出（`-json`）適用於 AI 代理和自動化。
 - **:material-reload: 斷點續傳** — 使用 `-resume` 標誌從中斷處恢復 SFTP 上傳/下載。
 - **:material-fingerprint: 檔案雜湊與校驗** — 計算並校驗本地檔案校驗和（MD5、SHA-1、SHA-256、SHA-512）— 無需 SSH 連線。
 - **:material-package-variant: 可重複使用 Go SDK** — 匯入 `package sshpass`，將 SSH/SFTP/Shell 嵌入你自己的應用，支援注入 I/O、進度回呼，零 UI 依賴。

@@ -53,6 +53,42 @@ win-sshpass -i ~/.ssh/id_ed25519 ssh user@host 'uname -a'
 !!! note "注意"
     win-sshpass は暗号化された（パスフレーズで保護された）秘密鍵をサポートしていません。鍵がパスフレーズで保護されている場合は、先に復号化するか ssh-agent を使用してください。
 
+## SSH Agent 認証
+
+win-sshpass はローカルの ssh-agent（OpenSSH agent、Windows の Pageant など）を自動的に使用して認証できます。`-p`（パスワード）も `-i`（鍵パス）も指定されていない場合、ssh-agent の自動検出がデフォルトで有効になります：
+
+```bash
+# 自動検出して ssh-agent を使用（-p や -i は不要）
+win-sshpass ssh user@host 'whoami'
+
+# ファイル転送や SCP/Rsync でも同様に動作
+win-sshpass -h host -local file.txt -remote /tmp/file.txt
+win-sshpass scp file.txt user@host:/tmp/
+win-sshpass rsync -avz ./ user@host:/backup/
+```
+
+!!! tip "ssh-agent のセットアップ"
+    ssh-agent が実行中で鍵がロードされていることを確認してください（`ssh-add -l` で確認）。Windows では、OpenSSH Authentication Agent サービスを有効にできます。
+
+### Agent 転送（`-A`）
+
+`-A` フラグを使用してローカルの ssh-agent をリモートサーバーに転送し、リモートホストがローカル鍵を使用してさらに SSH 接続（例：ジャンプホストからの `git clone`）できるようにします：
+
+```bash
+# Agent 転送を有効にする
+win-sshpass -A -i ~/.ssh/id_ed25519 ssh user@jumphost
+
+# パスワード/鍵なし — エージェント自動検出 + 転送
+win-sshpass -A ssh user@jumphost
+```
+
+!!! info "Agent 転送にはローカル Agent が必要"
+    Agent 転送（`-A`）には、実行中のローカル ssh-agent とロードされた鍵が必要です。有効にすると転送は自動的に処理されます。
+
+## キーボードインタラクティブ認証
+
+標準のパスワード認証が利用できない場合、win-sshpass は自動的にキーボードインタラクティブ認証にフォールバックします。これにより、PAM ベースのサーバー（Cisco ルーター、カスタム PAM 設定の一部の Linux ディストリビューションなど）との互換性が確保されます。追加のフラグは不要で、フォールバックは透過的です。
+
 ## 鍵生成
 
 win-sshpass には SSH 鍵ペア生成機能が組み込まれています。クライアント側の鍵ペア（秘密鍵 + 公開鍵）をローカルで生成できます。
@@ -208,6 +244,45 @@ win-sshpass -p 'pass' -proxy socks5://127.0.0.1:1080 scp ./app.jar user@host:/op
 
 !!! info "対応プロキシプロトコル"
     SOCKS5（オプションのユーザー名/パスワード認証）、SOCKS4、SOCKS4A、HTTP CONNECT、HTTPS CONNECT プロキシに対応しています。
+
+## ポート転送
+
+win-sshpass は SSH ポート転送をサポートし、SSH サーバーを介して TCP 接続をトンネリングできます。ローカル転送（`-L`）とリモート転送（`-R`）の両方が標準の OpenSSH 仕様形式を使用します。
+
+### ローカル転送（`-L`）
+
+SSH サーバーを介してローカルポートをリモートアドレスに転送します：
+
+```bash
+# 形式: -L [バインドアドレス:]ポート:ホスト:ホストポート
+# localhost:8080 → db.internal:3306 を SSH ホスト経由で転送
+win-sshpass -p 'pass' -L 8080:db.internal:3306 ssh user@jumphost
+
+# 特定のローカルアドレスにバインド
+win-sshpass -p 'pass' -L 127.0.0.1:8080:db.internal:3306 ssh user@jumphost
+
+# 複数転送
+win-sshpass -p 'pass' -L 8080:db1.internal:3306 -L 8081:db2.internal:3306 ssh user@jumphost
+
+# 転送のみモード（コマンドなし — Ctrl+C までブロック）
+win-sshpass -p 'pass' -L 8080:db.internal:3306 -L 9090:redis.internal:6379 ssh user@jumphost
+```
+
+### リモート転送（`-R`）
+
+リモートポートをローカルアドレスに転送します：
+
+```bash
+# 形式: -R [バインドアドレス:]ポート:ホスト:ホストポート
+# localhost:8080 をリモートサーバーのポート 9090 に公開
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
+
+# リモートホストからの接続を許可
+win-sshpass -p 'pass' -R 0.0.0.0:9090:localhost:8080 ssh user@server
+```
+
+!!! info "ポート転送の制限"
+    ポート転送は SSH コマンド/シェルモードのみでサポートされています。SCP、Rsync、またはファイル転送（`-local`/`-remote`）操作と組み合わせることはできません。
 
 ## ファイルハッシュと検証
 

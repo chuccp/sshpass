@@ -110,6 +110,43 @@ win-sshpass -p 'pass' -ct 5 -t 10 ssh user@host 'echo ok'
 win-sshpass -p 'pass' -t 300 ssh user@host 'backup.sh'
 ```
 
+### 5. 使用 SSH Agent 实现无缝认证
+
+当本地 ssh-agent 中已加载密钥时，win-sshpass 会自动检测 —— 无需 `-p` 或 `-i`：
+
+```bash
+# 将密钥加载到 agent 中
+ssh-add ~/.ssh/id_ed25519
+
+# 无需任何凭据参数即可连接
+win-sshpass ssh user@host 'whoami'
+
+# 适用于所有操作类型
+win-sshpass scp file.txt user@host:/tmp/
+win-sshpass rsync -avz ./ user@host:/backup/
+win-sshpass -h host -local file.txt -remote /tmp/file.txt
+```
+
+这是最安全的方法 —— 凭据永远不会出现在命令历史或配置文件中。
+
+### 6. 使用端口转发实现安全访问
+
+通过跳板机访问内部服务，无需将其暴露在公网：
+
+```bash
+# 通过跳板机访问内部数据库
+win-sshpass -i ~/.ssh/id_ed25519 -L 3306:db.internal:3306 ssh user@jumphost
+
+# 访问多个服务
+win-sshpass -A -L 8080:app.internal:80 -L 6379:redis.internal:6379 ssh user@jumphost
+
+# 将本地开发服务器暴露给远程服务器进行测试
+win-sshpass -i ~/.ssh/id_ed25519 -R 9090:localhost:3000 ssh user@dev-server
+```
+
+!!! tip "结合 agent 转发使用"
+    使用 `-A` 配合 `-L`/`-R`，让跳板机也能使用你的本地密钥进行进一步的 SSH 跳转。
+
 ## 故障排查
 
 ### 连接失败
@@ -128,6 +165,8 @@ win-sshpass -p 'pass' -ct 30 ssh user@host
 - 检查私钥路径是否正确
 - 检查远程服务器是否允许密码/密钥认证
 - 注意：不支持加密的私钥
+- 对于需要键盘交互式认证的 PAM/Cisco 服务器：win-sshpass 会自动回退 — 无需额外参数
+- 对于 ssh-agent 问题：确保 agent 正在运行（`ssh-add -l`）并已加载密钥（`ssh-add ~/.ssh/your_key`）
 
 ### Git Bash 路径问题
 
@@ -138,6 +177,84 @@ win-sshpass ... -remote /tmp/file.txt
 # 正确：使用双斜杠
 win-sshpass ... -remote //tmp/file.txt
 ```
+
+## JSON 输出模式
+
+win-sshpass 支持 `-json` 标志，将命令执行结果以结构化 JSON 格式输出到 stdout。这非常适合 AI Agent 和自动化脚本解析。
+
+### 基本用法
+
+```bash
+win-sshpass -json -p 'password' ssh user@host 'whoami && uptime'
+```
+
+### 成功输出示例
+
+```json
+{
+  "success": true,
+  "host": "user@host",
+  "command": "whoami && uptime",
+  "exit_code": 0,
+  "stdout": "root\n14:32:45 up 3 days,  2:15,  1 user,  load average: 0.00, 0.01, 0.05",
+  "duration_ms": 1245
+}
+```
+
+### 失败输出示例
+
+```json
+{
+  "success": false,
+  "host": "user@host",
+  "command": "ls /nonexistent",
+  "exit_code": 2,
+  "stdout": "",
+  "stderr": "ls: cannot access '/nonexistent': No such file or directory",
+  "error": "command exited with code 2",
+  "duration_ms": 892
+}
+```
+
+### 字段说明
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `success` | bool | 操作是否成功 |
+| `host` | string | 目标主机（user@host） |
+| `command` | string | 执行的命令 |
+| `exit_code` | int | 远程命令退出码（0=成功，-1=连接失败） |
+| `stdout` | string | 命令的标准输出 |
+| `stderr` | string | 命令的标准错误输出（为空时省略） |
+| `error` | string | 错误摘要（成功时省略） |
+| `duration_ms` | int64 | 执行耗时（毫秒） |
+
+### 支持的命令
+
+JSON 模式支持所有非交互式命令：
+
+```bash
+# SSH 命令执行
+win-sshpass -json -p 'pass' ssh user@host 'ls -la'
+
+# 文件传输
+win-sshpass -json -p 'pass' -h host -local file.txt -remote /tmp/file.txt
+win-sshpass -json -p 'pass' -h host -local /tmp/file.txt -remote file.txt -d
+
+# SCP / Rsync
+win-sshpass -json -p 'pass' scp file.txt user@host:/tmp/
+win-sshpass -json -p 'pass' rsync -avz ./ user@host:/backup/
+
+# 文件哈希校验
+win-sshpass -json hash sha256 file.txt
+win-sshpass -json verify sha256 <hash> file.txt
+
+# 密钥生成
+win-sshpass -json keygen -out ~/.ssh/mykey
+```
+
+!!! warning "交互式 Shell 不支持 JSON 模式"
+    JSON 模式需要捕获完整输出后再返回，因此不适用于交互式 Shell 会话。如果在不提供命令的情况下使用 `-json`，将返回错误。
 
 ## 下一步
 

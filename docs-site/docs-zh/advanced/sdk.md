@@ -64,6 +64,22 @@ err := client.Exec("ls -la")
 - 输出流通过 `WithStdout`/`WithStderr` 配置（默认 `os.Stdout`/`os.Stderr`）
 - 输入流通过 `WithStdin` 配置（默认 `os.Stdin`）
 
+### ExecCapture
+
+执行命令并捕获输出（不流式输出），适用于程序化处理：
+
+```go
+stdout, stderr, exitCode, err := client.ExecCapture("whoami")
+if exitCode == 0 && err == nil {
+    fmt.Println("Output:", stdout)
+} else {
+    fmt.Println("Error:", stderr)
+}
+```
+
+- `exitCode`: 0 表示成功，非零为远程退出码，-1 表示会话/连接错误
+- `err`: 仅在会话创建或连接级别失败时非 nil；正常退出（包括非零退出码）时为 nil
+
 ### Shell
 
 启动交互式 Shell：
@@ -117,6 +133,48 @@ if client.TimedOut() {
     fmt.Println("操作超时")
 }
 ```
+
+### 端口转发
+
+通过 SSH 连接创建 TCP 隧道。本地转发和远程转发均返回一个在后台运行的 `*Forwarder`。
+
+#### LocalForward
+
+在本地地址上监听，将每个连接通过 SSH 转发到远程目标：
+
+```go
+// 将 localhost:8080 → db.internal:3306 通过 SSH 服务器转发
+fwd, err := client.LocalForward("127.0.0.1:8080", "db.internal:3306")
+if err != nil {
+    log.Fatal(err)
+}
+defer fwd.Close()
+
+// 阻塞直到转发器停止
+fwd.Wait()
+```
+
+#### RemoteForward
+
+要求 SSH 服务器在远程地址上监听，并将连接转发回本地目标：
+
+```go
+// 将 localhost:8080 暴露在远程服务器的 9090 端口
+fwd, err := client.RemoteForward("0.0.0.0:9090", "127.0.0.1:8080")
+if err != nil {
+    log.Fatal(err)
+}
+defer fwd.Close()
+```
+
+#### Forwarder 生命周期
+
+- `Close()` — 停止隧道并释放监听器（可安全多次调用）
+- `Wait()` — 阻塞直到转发器停止（通过 `Close()` 或监听器错误）
+- 两个方法都是 goroutine 安全的
+
+!!! info "端口转发与连接共享"
+    `LocalForward` 和 `RemoteForward` 共享 Client 的 SSH 连接。关闭 `Client` 也会终止所有转发器。
 
 ## 配置（Config）
 
@@ -248,6 +306,29 @@ client, err := sshpass.NewClient(cfg,
 ```
 
 启用 SFTP 传输的断点续传功能 —— 中断的上传/下载将从断点处继续。
+
+### SSH Agent 转发
+
+```go
+client, err := sshpass.NewClient(cfg,
+    sshpass.WithAgentForward(),
+)
+```
+
+启用 ssh-agent 转发 —— 远程服务器可以使用本地 ssh-agent 进行进一步的 SSH 连接（例如从跳板机执行 `git clone`）。需要运行中的本地 ssh-agent 并已加载密钥。
+
+### SSH Agent 认证
+
+在配置上设置 `UseAgent` 以使用本地 ssh-agent 进行认证：
+
+```go
+cfg := sshpass.NewConfig()
+cfg.Host = "example.com"
+cfg.User = "root"
+cfg.UseAgent = true  // 自动检测并使用本地 ssh-agent
+```
+
+当 `UseAgent` 为 true 且未配置密码或密钥路径时，win-sshpass 会自动连接到本地 ssh-agent 进行认证。这是 CLI 中未指定 `-p` 或 `-i` 时的默认行为。
 
 ### 代理配置
 

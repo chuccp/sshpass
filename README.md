@@ -17,7 +17,7 @@ A cross-platform implementation of sshpass (Windows & Linux), providing similar 
 
 ## Features
 
-- SSH login with password or private key authentication
+- SSH login with password, private key, or ssh-agent authentication
 - Execute remote commands or open interactive shell
 - File upload/download via SFTP (with progress bar)
 - SCP-style and Rsync-style file transfer
@@ -28,6 +28,9 @@ A cross-platform implementation of sshpass (Windows & Linux), providing similar 
 - IPv6 address support
 - Support for Windows (x64, ARM64), Linux (amd64, arm64), and macOS (amd64, arm64)
 - **Reusable Go SDK** — import as a library (`package sshpass`) to embed SSH/SFTP/shell in your own app, with injectable I/O streams and progress callbacks
+- **Port forwarding** — local (`-L`) and remote (`-R`) TCP port forwarding through SSH tunnels
+- **SSH agent forwarding** (`-A`) — forward local ssh-agent to remote server, auto-detect agent when no credentials specified
+- **JSON output mode** (`-json`) — structured JSON results for AI agents and automation
 - **Proxy support** — tunnel SSH connections through SOCKS5/SOCKS4/HTTP/HTTPS proxies
 - **Breakpoint resume** — resume interrupted SFTP file transfers from where they left off
 - **File hash & verify** — compute and verify local file hashes (MD5, SHA-1, SHA-256, SHA-512)

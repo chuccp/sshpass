@@ -12,7 +12,7 @@ Windows 版および Linux 版 sshpass ツール。Linux の sshpass と同様�
 
 ## 機能
 
-- パスワードまたは秘密鍵認証による SSH ログイン
+- パスワード、秘密鍵、または ssh-agent 認証による SSH ログイン
 - リモートコマンドの実行またはインタラクティブシェル
 - SFTP によるファイルのアップロード/ダウンロード（プログレスバー付き）
 - SCP スタイルおよび Rsync スタイルのファイル転送
@@ -23,6 +23,9 @@ Windows 版および Linux 版 sshpass ツール。Linux の sshpass と同様�
 - IPv6 アドレス対応
 - Windows（x64、ARM64）、Linux（amd64、arm64）、macOS（amd64、arm64）対応
 - **再利用可能な Go SDK** — ライブラリとしてインポート（`package sshpass`）して、SSH/SFTP/Shell 機能を独自アプリに組み込み可能。I/O ストリームと進行コールバックの注入に対応
+- **ポート転送** — ローカル（`-L`）およびリモート（`-R`）TCP ポート転送を SSH トンネル経由で実現
+- **SSH Agent 転送**（`-A`）— ローカル ssh-agent をリモートサーバーに転送、認証情報なしで自動検出
+- **JSON 出力モード**（`-json`）— AI エージェントと自動化のための構造化 JSON 出力
 - **プロキシ対応** — SOCKS5/SOCKS4/HTTP/HTTPS プロキシ経由で SSH 接続をトンネル
 - **ブレークポイントレジューム** — 中断された SFTP ファイル転送を途中から再開
 - **ファイルハッシュと検証** — ローカルファイルのハッシュ計算と検証（MD5、SHA-1、SHA-256、SHA-512）

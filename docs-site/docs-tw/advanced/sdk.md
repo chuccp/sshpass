@@ -64,6 +64,22 @@ err := client.Exec("ls -la")
 - 輸出串流透過 `WithStdout`/`WithStderr` 設定（預設 `os.Stdout`/`os.Stderr`）
 - 輸入串流透過 `WithStdin` 設定（預設 `os.Stdin`）
 
+### ExecCapture
+
+執行命令並捕獲輸出（非串流），適用於程式化處理：
+
+```go
+stdout, stderr, exitCode, err := client.ExecCapture("whoami")
+if exitCode == 0 && err == nil {
+    fmt.Println("Output:", stdout)
+} else {
+    fmt.Println("Error:", stderr)
+}
+```
+
+- `exitCode`: 0 表示成功，非零為遠端退出碼，-1 表示工作階段/連接錯誤
+- `err`: 僅在工作階段建立或連接級別失敗時非 nil；正常退出（包括非零退出碼）時為 nil
+
 ### Shell
 
 啟動互動式 Shell：
@@ -117,6 +133,48 @@ if client.TimedOut() {
     fmt.Println("操作逾時")
 }
 ```
+
+### 連接埠轉送
+
+透過 SSH 連線建立 TCP 隧道。本機轉送和遠端轉送均會傳回一個在背景執行的 `*Forwarder`。
+
+#### LocalForward
+
+在本機位址上監聽，將每個連線透過 SSH 轉送到遠端目標：
+
+```go
+// 將 localhost:8080 → db.internal:3306 透過 SSH 伺服器轉送
+fwd, err := client.LocalForward("127.0.0.1:8080", "db.internal:3306")
+if err != nil {
+    log.Fatal(err)
+}
+defer fwd.Close()
+
+// 阻塞直到轉送器停止
+fwd.Wait()
+```
+
+#### RemoteForward
+
+要求 SSH 伺服器在遠端位址上監聽，並將連線轉送回本機目標：
+
+```go
+// 將 localhost:8080 暴露在遠端伺服器的 9090 連接埠
+fwd, err := client.RemoteForward("0.0.0.0:9090", "127.0.0.1:8080")
+if err != nil {
+    log.Fatal(err)
+}
+defer fwd.Close()
+```
+
+#### Forwarder 生命週期
+
+- `Close()` — 停止隧道並釋放監聽器（可安全多次呼叫）
+- `Wait()` — 阻塞直到轉送器停止（透過 `Close()` 或監聽器錯誤）
+- 兩個方法都是 goroutine 安全的
+
+!!! info "連接埠轉送與連線共享"
+    `LocalForward` 和 `RemoteForward` 共享 Client 的 SSH 連線。關閉 `Client` 也會終止所有轉送器。
 
 ## 設定（Config）
 
@@ -248,6 +306,29 @@ client, err := sshpass.NewClient(cfg,
 ```
 
 啟用 SFTP 傳輸的斷點續傳功能 —— 中斷的上傳/下載將從斷點處繼續。
+
+### SSH Agent 轉送
+
+```go
+client, err := sshpass.NewClient(cfg,
+    sshpass.WithAgentForward(),
+)
+```
+
+啟用 ssh-agent 轉送 —— 遠端伺服器可以使用本機 ssh-agent 進行進一步的 SSH 連線（例如從跳板機執行 `git clone`）。需要執行中的本機 ssh-agent 並已載入金鑰。
+
+### SSH Agent 認證
+
+在設定上設定 `UseAgent` 以使用本機 ssh-agent 進行認證：
+
+```go
+cfg := sshpass.NewConfig()
+cfg.Host = "example.com"
+cfg.User = "root"
+cfg.UseAgent = true  // 自動檢測並使用本機 ssh-agent
+```
+
+當 `UseAgent` 為 true 且未設定密碼或金鑰路徑時，win-sshpass 會自動連接到本機 ssh-agent 進行認證。這是 CLI 中未指定 `-p` 或 `-i` 時的預設行為。
 
 ### 代理配置
 

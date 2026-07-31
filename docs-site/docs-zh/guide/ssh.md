@@ -53,6 +53,42 @@ win-sshpass -i ~/.ssh/id_ed25519 ssh user@host 'uname -a'
 !!! note "注意"
     win-sshpass 不支持加密（有密码保护）的私钥。如果私钥有密码保护，请先解密或使用 ssh-agent。
 
+## SSH Agent 认证
+
+win-sshpass 可以自动使用本地 ssh-agent（如 OpenSSH agent、Windows 上的 Pageant）进行认证。当未指定 `-p`（密码）或 `-i`（密钥路径）时，默认启用 ssh-agent 自动检测：
+
+```bash
+# 自动检测并使用 ssh-agent（无需 -p 或 -i）
+win-sshpass ssh user@host 'whoami'
+
+# 同样适用于文件传输和 SCP/Rsync
+win-sshpass -h host -local file.txt -remote /tmp/file.txt
+win-sshpass scp file.txt user@host:/tmp/
+win-sshpass rsync -avz ./ user@host:/backup/
+```
+
+!!! tip "ssh-agent 设置"
+    确保 ssh-agent 正在运行并已加载密钥（使用 `ssh-add -l` 检查）。在 Windows 上，可以在"服务"中启用 OpenSSH Authentication Agent 服务。
+
+### Agent 转发（`-A`）
+
+使用 `-A` 参数将本地 ssh-agent 转发到远程服务器，允许远程主机使用本地密钥进行进一步的 SSH 连接（例如从跳板机执行 `git clone`）：
+
+```bash
+# 启用 agent 转发
+win-sshpass -A -i ~/.ssh/id_ed25519 ssh user@jumphost
+
+# 无密码/密钥 — 自动检测 agent + 转发
+win-sshpass -A ssh user@jumphost
+```
+
+!!! info "Agent 转发需要本地 Agent"
+    Agent 转发（`-A`）需要运行中的本地 ssh-agent 并已加载密钥。启用后转发将自动处理。
+
+## 键盘交互式认证
+
+当标准密码认证不可用时，win-sshpass 会自动回退到键盘交互式认证。这确保与基于 PAM 的服务器（如 Cisco 路由器、部分使用自定义 PAM 配置的 Linux 发行版）兼容。无需额外参数 —— 回退是透明的。
+
 ## 密钥生成
 
 win-sshpass 内置了 SSH 密钥对生成功能，可以在本地生成客户端密钥对（私钥 + 公钥）。
@@ -208,6 +244,45 @@ win-sshpass -p 'pass' -proxy socks5://127.0.0.1:1080 scp ./app.jar user@host:/op
 
 !!! info "支持的代理协议"
     支持 SOCKS5（可选用户名/密码认证）、SOCKS4、SOCKS4A、HTTP CONNECT 和 HTTPS CONNECT 代理。
+
+## 端口转发
+
+win-sshpass 支持 SSH 端口转发，可通过 SSH 服务器建立 TCP 隧道连接。本地转发（`-L`）和远程转发（`-R`）均使用标准的 OpenSSH 规范格式。
+
+### 本地转发（`-L`）
+
+通过 SSH 服务器将本地端口转发到远程地址：
+
+```bash
+# 格式：-L [绑定地址:]端口:主机:主机端口
+# 将 localhost:8080 → db.internal:3306 通过 SSH 主机转发
+win-sshpass -p 'pass' -L 8080:db.internal:3306 ssh user@jumphost
+
+# 绑定到特定本地地址
+win-sshpass -p 'pass' -L 127.0.0.1:8080:db.internal:3306 ssh user@jumphost
+
+# 多个转发
+win-sshpass -p 'pass' -L 8080:db1.internal:3306 -L 8081:db2.internal:3306 ssh user@jumphost
+
+# 仅转发模式（无命令 — 阻塞直到 Ctrl+C）
+win-sshpass -p 'pass' -L 8080:db.internal:3306 -L 9090:redis.internal:6379 ssh user@jumphost
+```
+
+### 远程转发（`-R`）
+
+将远程端口转发回本地地址：
+
+```bash
+# 格式：-R [绑定地址:]端口:主机:主机端口
+# 将 localhost:8080 暴露在远程服务器的 9090 端口
+win-sshpass -p 'pass' -R 9090:localhost:8080 ssh user@server
+
+# 允许远程主机连接
+win-sshpass -p 'pass' -R 0.0.0.0:9090:localhost:8080 ssh user@server
+```
+
+!!! info "端口转发限制"
+    端口转发仅支持 SSH 命令/Shell 模式。无法与 SCP、Rsync 或文件传输（`-local`/`-remote`）操作同时使用。
 
 ## 文件哈希与校验
 

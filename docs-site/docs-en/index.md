@@ -6,7 +6,7 @@ hide:
 
 # win-sshpass
 
-> A cross-platform implementation of sshpass (Windows, Linux & macOS): password/key SSH login, interactive shell, SFTP/SCP/Rsync file transfer, SOCKS5/SOCKS4/HTTP proxy tunneling, breakpoint resume, file hash/verify, key generation, and a reusable Go SDK.
+> A cross-platform implementation of sshpass (Windows, Linux & macOS): password/key/ssh-agent SSH login, interactive shell, SFTP/SCP/Rsync file transfer, port forwarding (-L/-R), SOCKS5/SOCKS4/HTTP proxy tunneling, JSON output for AI agents, breakpoint resume, file hash/verify, key generation, and a reusable Go SDK.
 
 [Quick Start](getting-started/quick-start.md){ .md-button .md-button--primary }
 [Installation](getting-started/installation.md){ .md-button }
@@ -21,6 +21,8 @@ hide:
 - **:material-cloud-download: Shell rz/sz** — Use `rz`/`sz` commands directly in interactive shell — no software needs to be installed on the remote server; transfers go over SFTP.
 - **:material-shield-key: Key Generation** — Built-in SSH key pair generation (Ed25519 and RSA), no ssh-keygen needed. Deploy public keys via SSH to enable password-less login.
 - **:material-lan-connect: Proxy Tunneling** — Tunnel SSH connections through SOCKS5 (with auth), SOCKS4, SOCKS4A, HTTP CONNECT, and HTTPS CONNECT proxies.
+- **:material-swap-horizontal: Port Forwarding** — Local (`-L`) and remote (`-R`) TCP port forwarding through SSH tunnels, with a `Forwarder` SDK API for programmatic use.
+- **:material-shield-account: SSH Agent & JSON Mode** — Auto-detect and use local ssh-agent for authentication, with optional agent forwarding (`-A`). Structured JSON output (`-json`) for AI agents and automation.
 - **:material-reload: Breakpoint Resume** — Resume interrupted SFTP uploads/downloads from where they left off with the `-resume` flag.
 - **:material-fingerprint: File Hash & Verify** — Compute and verify local file checksums (MD5, SHA-1, SHA-256, SHA-512) — no SSH connection needed.
 - **:material-package-variant: Reusable Go SDK** — Import `package sshpass` to embed SSH/SFTP/shell in your own app with injectable I/O, progress callbacks, and zero UI dependencies.
