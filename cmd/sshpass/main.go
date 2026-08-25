@@ -190,10 +190,10 @@ func main() {
 			}
 			if ok {
 				fmt.Println("OK")
-			} else {
-				fmt.Println("FAILED")
+				return
 			}
-			return
+			fmt.Println("FAILED")
+			os.Exit(1)
 		}
 	}
 
